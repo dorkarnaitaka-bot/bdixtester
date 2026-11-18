@@ -2,6 +2,7 @@ package com.jubayerhossain.bdixtester.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -29,7 +30,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -72,12 +75,14 @@ fun ServerCard(
     onDeleteCustomClick: (() -> Unit)? = null
 ) {
     val haptic = LocalHapticFeedback.current
+    val cardInteractionSource = remember { MutableInteractionSource() }
     val status = result?.status ?: TestStatus.NOT_TESTED
     val urlA11y = stringResource(R.string.servers_open_url_a11y, endpoint.name)
 
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .springPressScale(interactionSource = cardInteractionSource, pressedScale = 0.975f)
             .testTag("server_card_${endpoint.id}"),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
@@ -89,6 +94,8 @@ fun ServerCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(
+                        interactionSource = cardInteractionSource,
+                        indication = ripple(),
                         role = Role.Button,
                         onClickLabel = urlA11y,
                         onClick = {
@@ -162,16 +169,11 @@ fun ServerCard(
                                     .minimumInteractiveComponentSize()
                                     .testTag("pin_toggle_${endpoint.id}")
                             ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.PushPin,
+                                AnimatedPinIcon(
+                                    isPinned = isPinned,
                                     contentDescription = stringResource(
                                         if (isPinned) R.string.action_unpin else R.string.action_pin
-                                    ),
-                                    tint = if (isPinned) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
+                                    )
                                 )
                             }
                         }
@@ -186,16 +188,11 @@ fun ServerCard(
                                     .minimumInteractiveComponentSize()
                                     .testTag("favorite_toggle_${endpoint.id}")
                             ) {
-                                Icon(
-                                    imageVector = if (isFavorite) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                                AnimatedBookmarkIcon(
+                                    isFavorite = isFavorite,
                                     contentDescription = stringResource(
                                         if (isFavorite) R.string.action_remove_favorite else R.string.action_add_favorite
-                                    ),
-                                    tint = if (isFavorite) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        MaterialTheme.colorScheme.onSurfaceVariant
-                                    }
+                                    )
                                 )
                             }
                         }

@@ -6,10 +6,11 @@ import android.content.IntentFilter
 import android.net.Uri
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import com.jubayerhossain.bdixtester.data.catalog.BdOttPlatforms
 import org.junit.Assert.assertEquals
@@ -33,11 +34,12 @@ class NavigationUiTest {
     fun homeCleanupBottomNavOttDirectoryAndModernSettingsWorkEndToEnd() {
         composeTestRule.waitForIdle()
 
-        // Home screen displays Hero Ring & Start Test; permanently deleted blocks must NOT exist
+        // Home screen displays Brand Top Bar + Live IP Pill, Hero Ring & Start Test; permanently deleted blocks must NOT exist
         composeTestRule.onNodeWithTag("dashboard_screen").assertIsDisplayed()
         composeTestRule.onNodeWithTag("home_menu_button").assertDoesNotExist()
         composeTestRule.onNodeWithTag("home_scan_mode_selector").assertDoesNotExist()
         composeTestRule.onNodeWithTag("home_network_summary_card").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("home_top_ip_pill").assertIsDisplayed()
         composeTestRule.onNodeWithTag("home_tester_ring").assertIsDisplayed()
         composeTestRule.onNodeWithTag("home_start_test_button").assertIsDisplayed()
 
@@ -109,17 +111,47 @@ class NavigationUiTest {
         composeTestRule.onNodeWithTag("history_screen").assertIsDisplayed()
         composeTestRule.onNodeWithTag("history_empty_state").assertIsDisplayed()
 
-        // Navigate to Settings tab and test redesigned M3 grouped rows + modal pickers
+        // Navigate to Settings tab and test App Profile header, Catalog Actions, Modal Pickers, Privacy Policy & Footer
         composeTestRule.onNodeWithTag("nav_settings").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("nav_settings").assertIsSelected()
         composeTestRule.onNodeWithTag("settings_screen").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("settings_app_header_card").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("settings_update_server_list_row").assertIsDisplayed()
+
+        // Verify New Server Add Request opens the real CustomServerDialog
+        composeTestRule.onNodeWithTag("settings_list").performScrollToNode(hasTestTag("settings_add_server_request_row"))
+        composeTestRule.onNodeWithTag("settings_add_server_request_row").assertIsDisplayed().performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("custom_server_dialog").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("custom_server_cancel_button").performClick()
+        composeTestRule.waitForIdle()
+
+        // Verify Theme, Language & Scan Mode rows
+        composeTestRule.onNodeWithTag("settings_list").performScrollToNode(hasTestTag("settings_theme_row"))
         composeTestRule.onNodeWithTag("settings_theme_row").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("settings_list").performScrollToNode(hasTestTag("settings_language_row"))
         composeTestRule.onNodeWithTag("settings_language_row").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("settings_scan_mode_row").performScrollTo().assertIsDisplayed().performClick()
+        composeTestRule.onNodeWithTag("settings_list").performScrollToNode(hasTestTag("settings_scan_mode_row"))
+        composeTestRule.onNodeWithTag("settings_scan_mode_row").assertIsDisplayed().performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("scan_mode_option_full").assertIsDisplayed().performClick()
         composeTestRule.waitForIdle()
+
+        // Verify Privacy Policy modal, Facebook Community, Share App & Version Footer
+        composeTestRule.onNodeWithTag("settings_list").performScrollToNode(hasTestTag("settings_privacy_policy_row"))
+        composeTestRule.onNodeWithTag("settings_privacy_policy_row").assertIsDisplayed().performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("settings_privacy_policy_dialog").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("settings_privacy_policy_close_button").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithTag("settings_list").performScrollToNode(hasTestTag("settings_facebook_row"))
+        composeTestRule.onNodeWithTag("settings_facebook_row").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("settings_list").performScrollToNode(hasTestTag("settings_share_app_row"))
+        composeTestRule.onNodeWithTag("settings_share_app_row").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("settings_list").performScrollToNode(hasTestTag("settings_version_footer"))
+        composeTestRule.onNodeWithTag("settings_version_footer").assertIsDisplayed()
 
         // Return to Home tab
         composeTestRule.onNodeWithTag("nav_home").performClick()

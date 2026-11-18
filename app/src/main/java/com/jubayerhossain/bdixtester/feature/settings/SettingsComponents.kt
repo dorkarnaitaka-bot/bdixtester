@@ -2,6 +2,7 @@ package com.jubayerhossain.bdixtester.feature.settings
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jubayerhossain.bdixtester.R
 import com.jubayerhossain.bdixtester.ui.components.LtrContent
+import com.jubayerhossain.bdixtester.ui.components.springPressScale
 import com.jubayerhossain.bdixtester.ui.theme.BdixBorder
 import com.jubayerhossain.bdixtester.ui.theme.BdixSpacing
 import com.jubayerhossain.bdixtester.ui.theme.MonoUrlStyle
@@ -144,11 +147,15 @@ internal fun SettingsNavigationRow(
     subtitleMonospace: Boolean = false
 ) {
     val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .springPressScale(interactionSource = interactionSource, pressedScale = 0.98f)
             .heightIn(min = 64.dp)
             .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(),
                 role = Role.Button,
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
@@ -222,11 +229,15 @@ internal fun SettingsSwitchRow(
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .springPressScale(interactionSource = interactionSource, pressedScale = 0.985f)
             .heightIn(min = 64.dp)
             .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(),
                 role = Role.Switch,
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)

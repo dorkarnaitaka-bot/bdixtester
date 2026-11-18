@@ -24,6 +24,7 @@ data class SettingsUiState(
     val catalogSyncState: CatalogSyncState = CatalogSyncState(),
     val catalogIntegrity: CatalogIntegrityReport? = null,
     val networkSnapshot: NetworkSnapshot = NetworkSnapshot(),
+    val totalServerCount: Int = 369,
     val isSyncing: Boolean = false
 )
 
@@ -35,18 +36,26 @@ class SettingsViewModel(
     private val catalogRepo = appContainer.catalogRepository
     private val _isSyncing = MutableStateFlow(false)
 
-    val uiState: StateFlow<SettingsUiState> = combine(
-        settingsRepo.settings,
+    private val catalogSummaryFlow = combine(
         catalogRepo.catalogSyncState,
         catalogRepo.catalogIntegrity,
+        catalogRepo.endpoints
+    ) { syncState, integrity, endpoints ->
+        Triple(syncState, integrity, endpoints.size.takeIf { it > 0 } ?: 369)
+    }
+
+    val uiState: StateFlow<SettingsUiState> = combine(
+        settingsRepo.settings,
+        catalogSummaryFlow,
         appContainer.connectivityObserver.observeConnectivity(),
         _isSyncing
-    ) { settings, syncState, integrity, network, isSyncing ->
+    ) { settings, (syncState, integrity, totalServers), network, isSyncing ->
         SettingsUiState(
             settings = settings,
             catalogSyncState = syncState,
             catalogIntegrity = integrity,
             networkSnapshot = network,
+            totalServerCount = totalServers,
             isSyncing = isSyncing
         )
     }.stateIn(

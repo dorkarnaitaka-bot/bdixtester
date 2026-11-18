@@ -1,13 +1,19 @@
 package com.jubayerhossain.bdixtester.feature.servers
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -68,9 +74,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -89,6 +97,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.jubayerhossain.bdixtester.R
+import com.jubayerhossain.bdixtester.core.util.ServerDisplayCategory
 import com.jubayerhossain.bdixtester.core.util.ServerDisplayClassifier
 import com.jubayerhossain.bdixtester.data.catalog.BdOttPlatforms
 import com.jubayerhossain.bdixtester.data.catalog.OttGenre
@@ -96,8 +105,12 @@ import com.jubayerhossain.bdixtester.data.catalog.OttPlatform
 import com.jubayerhossain.bdixtester.data.catalog.OttRegion
 import com.jubayerhossain.bdixtester.data.catalog.OttRegionFilter
 import com.jubayerhossain.bdixtester.domain.model.ServerEndpoint
+import com.jubayerhossain.bdixtester.ui.components.AnimatedBookmarkIcon
+import com.jubayerhossain.bdixtester.ui.components.BdixMotionSpecs
 import com.jubayerhossain.bdixtester.ui.components.EmptyStateView
 import com.jubayerhossain.bdixtester.ui.components.LtrContent
+import com.jubayerhossain.bdixtester.ui.components.RollingCountText
+import com.jubayerhossain.bdixtester.ui.components.springPressScale
 import com.jubayerhossain.bdixtester.ui.theme.BdixBorder
 import com.jubayerhossain.bdixtester.ui.theme.BdixIconSize
 import com.jubayerhossain.bdixtester.ui.theme.BdixSpacing
@@ -353,7 +366,11 @@ fun ServersScreen(
                 }
             }
 
-            if (isOttMode) {
+            AnimatedVisibility(
+                visible = isOttMode,
+                enter = expandVertically(tween(220)) + fadeIn(tween(200)),
+                exit = shrinkVertically(tween(180)) + fadeOut(tween(150))
+            ) {
                 // Compact Region Filter Pills for Curated BD OTT Directory (26 verified platforms)
                 LazyRow(
                     modifier = Modifier
@@ -407,7 +424,14 @@ fun ServersScreen(
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val useTwoColumns = maxWidth >= 700.dp
 
-                if (isOttMode) {
+                AnimatedContent(
+                    targetState = isOttMode,
+                    transitionSpec = {
+                        fadeIn(tween(220)) togetherWith fadeOut(tween(150))
+                    },
+                    label = "servers_mode_switch"
+                ) { ottMode ->
+                    if (ottMode) {
                     OttDirectoryList(
                         platforms = uiState.filteredOttPlatforms,
                         useTwoColumns = useTwoColumns,
@@ -464,10 +488,10 @@ fun ServersScreen(
                         columns = GridCells.Fixed(2),
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
-                            start = BdixSpacing.md,
-                            end = BdixSpacing.md,
+                            start = BdixSpacing.lg,
+                            end = BdixSpacing.lg,
                             top = BdixSpacing.xs,
-                            bottom = BdixSpacing.xl
+                            bottom = BdixSpacing.xxl
                         ),
                         horizontalArrangement = Arrangement.spacedBy(BdixSpacing.md),
                         verticalArrangement = Arrangement.spacedBy(BdixSpacing.md)
@@ -485,7 +509,8 @@ fun ServersScreen(
                                 latencyMs = result?.primaryLatencyMs,
                                 isFavorite = uiState.favorites.containsKey(endpoint.id),
                                 onToggleFavorite = { onToggleFavorite(endpoint.id) },
-                                onUrlClick = { onOpenUrl(endpoint.originalUrl) }
+                                onUrlClick = { onOpenUrl(endpoint.originalUrl) },
+                                modifier = Modifier.animateItem()
                             )
                         }
                     }
@@ -495,12 +520,12 @@ fun ServersScreen(
                             .fillMaxSize()
                             .widthIn(max = 720.dp),
                         contentPadding = PaddingValues(
-                            start = BdixSpacing.md,
-                            end = BdixSpacing.md,
+                            start = BdixSpacing.lg,
+                            end = BdixSpacing.lg,
                             top = BdixSpacing.xs,
-                            bottom = BdixSpacing.xl
+                            bottom = BdixSpacing.xxl
                         ),
-                        verticalArrangement = Arrangement.spacedBy(BdixSpacing.sm)
+                        verticalArrangement = Arrangement.spacedBy(BdixSpacing.md)
                     ) {
                         items(
                             items = uiState.filteredServers,
@@ -514,10 +539,12 @@ fun ServersScreen(
                                 latencyMs = result?.primaryLatencyMs,
                                 isFavorite = uiState.favorites.containsKey(endpoint.id),
                                 onToggleFavorite = { onToggleFavorite(endpoint.id) },
-                                onUrlClick = { onOpenUrl(endpoint.originalUrl) }
+                                onUrlClick = { onOpenUrl(endpoint.originalUrl) },
+                                modifier = Modifier.animateItem()
                             )
                         }
                     }
+                }
                 }
             }
         }
@@ -559,10 +586,10 @@ private fun OttDirectoryList(
                 .fillMaxSize()
                 .testTag("ott_directory_list"),
             contentPadding = PaddingValues(
-                start = BdixSpacing.md,
-                end = BdixSpacing.md,
+                start = BdixSpacing.lg,
+                end = BdixSpacing.lg,
                 top = BdixSpacing.xs,
-                bottom = BdixSpacing.xl
+                bottom = BdixSpacing.xxl
             ),
             horizontalArrangement = Arrangement.spacedBy(BdixSpacing.md),
             verticalArrangement = Arrangement.spacedBy(BdixSpacing.md)
@@ -574,7 +601,8 @@ private fun OttDirectoryList(
             ) { platform ->
                 OttPlatformCard(
                     platform = platform,
-                    onOpenUrl = { onOpenUrl(platform.url) }
+                    onOpenUrl = { onOpenUrl(platform.url) },
+                    modifier = Modifier.animateItem()
                 )
             }
         }
@@ -585,12 +613,12 @@ private fun OttDirectoryList(
                 .widthIn(max = 720.dp)
                 .testTag("ott_directory_list"),
             contentPadding = PaddingValues(
-                start = BdixSpacing.md,
-                end = BdixSpacing.md,
+                start = BdixSpacing.lg,
+                end = BdixSpacing.lg,
                 top = BdixSpacing.xs,
-                bottom = BdixSpacing.xl
+                bottom = BdixSpacing.xxl
             ),
-            verticalArrangement = Arrangement.spacedBy(BdixSpacing.sm)
+            verticalArrangement = Arrangement.spacedBy(BdixSpacing.md)
         ) {
             items(
                 items = platforms,
@@ -598,7 +626,8 @@ private fun OttDirectoryList(
             ) { platform ->
                 OttPlatformCard(
                     platform = platform,
-                    onOpenUrl = { onOpenUrl(platform.url) }
+                    onOpenUrl = { onOpenUrl(platform.url) },
+                    modifier = Modifier.animateItem()
                 )
             }
         }
@@ -608,9 +637,11 @@ private fun OttDirectoryList(
 @Composable
 private fun OttPlatformCard(
     platform: OttPlatform,
-    onOpenUrl: () -> Unit
+    onOpenUrl: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
     val urlA11y = stringResource(R.string.servers_open_url_a11y, platform.name)
     val genreIcon = when (platform.genre) {
         OttGenre.ORIGINALS_MOVIES -> Icons.Rounded.SmartDisplay
@@ -622,9 +653,12 @@ private fun OttPlatformCard(
     val isBangladesh = platform.region == OttRegion.BANGLADESH
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .springPressScale(interactionSource = interactionSource, pressedScale = 0.975f)
             .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(),
                 role = Role.Button,
                 onClickLabel = urlA11y,
                 onClick = {
@@ -634,10 +668,11 @@ private fun OttPlatformCard(
             )
             .semantics { contentDescription = urlA11y }
             .testTag("ott_card_${platform.id}"),
-        shape = MaterialTheme.shapes.medium,
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         border = BorderStroke(BdixBorder.hairline, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -649,23 +684,23 @@ private fun OttPlatformCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.size(40.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.9f),
+                    modifier = Modifier.size(44.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = genreIcon,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }
 
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -673,7 +708,7 @@ private fun OttPlatformCard(
                     ) {
                         Text(
                             text = platform.name,
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onSurface,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
@@ -685,7 +720,7 @@ private fun OttPlatformCard(
                             } else {
                                 MaterialTheme.colorScheme.surfaceContainerHigh
                             },
-                            shape = RoundedCornerShape(6.dp)
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
                                 text = stringResource(
@@ -697,7 +732,7 @@ private fun OttPlatformCard(
                                 } else {
                                     MaterialTheme.colorScheme.onSurfaceVariant
                                 },
-                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                 maxLines = 1
                             )
                         }
@@ -713,39 +748,13 @@ private fun OttPlatformCard(
                 }
             }
 
-            HorizontalDivider(
-                thickness = BdixBorder.hairline,
-                color = MaterialTheme.colorScheme.outlineVariant
+            // Elevated Rich Card Tinted Footer Strip with URL & Open Pill
+            RichCardUrlFooter(
+                url = platform.url,
+                urlA11y = urlA11y,
+                testTag = "ott_url_${platform.id}",
+                onClick = onOpenUrl
             )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .padding(horizontal = BdixSpacing.lg, vertical = BdixSpacing.sm)
-                    .testTag("ott_url_${platform.id}"),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                LtrContent {
-                    Text(
-                        text = platform.url,
-                        style = MonoUrlStyle,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .weight(1f, fill = false)
-                            .padding(end = BdixSpacing.sm)
-                    )
-                }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(BdixIconSize.sm)
-                )
-            }
         }
     }
 }
@@ -760,9 +769,31 @@ private fun StatusHeaderTab(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val indicatorWidthFraction by animateFloatAsState(
+        targetValue = if (selected) 0.78f else 0f,
+        animationSpec = BdixMotionSpecs.snappySpring,
+        label = "status_tab_indicator"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (selected) {
+            MaterialTheme.colorScheme.onSurface
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        animationSpec = tween(200),
+        label = "status_tab_color"
+    )
+
     Column(
         modifier = modifier
-            .clickable(role = Role.Tab, onClick = onClick)
+            .springPressScale(interactionSource = interactionSource, pressedScale = 0.95f)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(),
+                role = Role.Tab,
+                onClick = onClick
+            )
             .heightIn(min = 52.dp)
             .padding(horizontal = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -780,18 +811,13 @@ private fun StatusHeaderTab(
                 modifier = Modifier.size(BdixIconSize.xs)
             )
             LtrContent {
-                Text(
-                    text = count.toString(),
+                RollingCountText(
+                    count = count,
                     style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
                         fontFeatureSettings = "tnum"
                     ),
-                    color = if (selected) {
-                        MaterialTheme.colorScheme.onSurface
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    maxLines = 1
+                    color = contentColor
                 )
             }
         }
@@ -800,21 +826,17 @@ private fun StatusHeaderTab(
             style = MaterialTheme.typography.labelMedium.copy(
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
             ),
-            color = if (selected) {
-                MaterialTheme.colorScheme.onSurface
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
+            color = contentColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
         Spacer(modifier = Modifier.height(6.dp))
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.76f)
+                .fillMaxWidth(indicatorWidthFraction)
                 .height(2.5.dp)
                 .background(
-                    color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    color = MaterialTheme.colorScheme.primary,
                     shape = MaterialTheme.shapes.extraSmall
                 )
         )
@@ -828,10 +850,12 @@ private fun ServerListCard(
     latencyMs: Long?,
     isFavorite: Boolean,
     onToggleFavorite: () -> Unit,
-    onUrlClick: () -> Unit
+    onUrlClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
     val semantic = LocalBdixSemanticColors.current
+    val cardInteractionSource = remember { MutableInteractionSource() }
     val (statusIcon, statusTint, statusDesc) = when (statusTab) {
         ServerStatusTab.WORKING -> Triple(
             Icons.Rounded.CheckCircle,
@@ -850,24 +874,34 @@ private fun ServerListCard(
         )
     }
 
+    val categoryIcon = when (ServerDisplayClassifier.classify(endpoint)) {
+        ServerDisplayCategory.TV -> Icons.Rounded.LiveTv
+        ServerDisplayCategory.FTP -> Icons.Rounded.FolderShared
+        ServerDisplayCategory.MOVIE -> Icons.Rounded.Movie
+    }
+
     val urlA11y = stringResource(R.string.servers_open_url_a11y, endpoint.name)
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .springPressScale(interactionSource = cardInteractionSource, pressedScale = 0.975f)
             .testTag("server_card_${endpoint.id}"),
-        shape = MaterialTheme.shapes.medium,
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         border = BorderStroke(BdixBorder.hairline, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Tapping anywhere on the card launches the external browser directly (no metadata page)
+            // Tapping anywhere on the card launches the external browser directly (ZERO metadata page)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(
+                        interactionSource = cardInteractionSource,
+                        indication = ripple(),
                         role = Role.Button,
                         onClickLabel = urlA11y,
                         onClick = {
@@ -879,18 +913,33 @@ private fun ServerListCard(
                         start = BdixSpacing.lg,
                         end = BdixSpacing.sm,
                         top = BdixSpacing.md,
-                        bottom = BdixSpacing.sm
+                        bottom = BdixSpacing.md
                     ),
-                horizontalArrangement = Arrangement.spacedBy(BdixSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(BdixSpacing.md),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+                    modifier = Modifier.size(44.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = categoryIcon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Text(
                         text = endpoint.name,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
@@ -898,15 +947,22 @@ private fun ServerListCard(
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(BdixSpacing.sm)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = ServerDisplayClassifier.displayLabel(endpoint),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = ServerDisplayClassifier.displayLabel(endpoint),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
                         if (latencyMs != null) {
                             Surface(
                                 color = if (statusTab == ServerStatusTab.WORKING) {
@@ -914,18 +970,21 @@ private fun ServerListCard(
                                 } else {
                                     MaterialTheme.colorScheme.surfaceContainerHigh
                                 },
-                                shape = MaterialTheme.shapes.extraSmall
+                                shape = RoundedCornerShape(8.dp)
                             ) {
                                 LtrContent {
                                     Text(
                                         text = stringResource(R.string.servers_latency_chip, latencyMs),
-                                        style = MaterialTheme.typography.labelSmall,
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontFeatureSettings = "tnum"
+                                        ),
                                         color = if (statusTab == ServerStatusTab.WORKING) {
                                             semantic.reachable
                                         } else {
                                             MaterialTheme.colorScheme.onSurfaceVariant
                                         },
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                     )
                                 }
                             }
@@ -933,81 +992,112 @@ private fun ServerListCard(
                     }
                 }
 
-                IconButton(
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        onToggleFavorite()
-                    },
-                    modifier = Modifier
-                        .minimumInteractiveComponentSize()
-                        .testTag("server_bookmark_${endpoint.id}")
-                ) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
-                        contentDescription = stringResource(
-                            if (isFavorite) R.string.action_remove_favorite else R.string.action_add_favorite
-                        ),
-                        tint = if (isFavorite) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.size(BdixIconSize.md)
-                    )
-                }
-
-                Icon(
-                    imageVector = statusIcon,
-                    contentDescription = statusDesc,
-                    tint = statusTint,
-                    modifier = Modifier
-                        .padding(end = BdixSpacing.sm)
-                        .size(BdixIconSize.lg)
-                )
-            }
-
-            HorizontalDivider(
-                thickness = BdixBorder.hairline,
-                color = MaterialTheme.colorScheme.outlineVariant
-            )
-
-            // Full-width >= 48dp External Browser URL Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .clickable(
-                        role = Role.Button,
-                        onClickLabel = urlA11y,
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onUrlClick()
-                        }
-                    )
-                    .semantics { contentDescription = urlA11y }
-                    .padding(horizontal = BdixSpacing.lg, vertical = BdixSpacing.sm)
-                    .testTag("server_url_link_${endpoint.id}"),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                LtrContent {
-                    Text(
-                        text = endpoint.originalUrl,
-                        style = MonoUrlStyle,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                            onToggleFavorite()
+                        },
                         modifier = Modifier
-                            .weight(1f, fill = false)
+                            .minimumInteractiveComponentSize()
+                            .testTag("server_bookmark_${endpoint.id}")
+                    ) {
+                        AnimatedBookmarkIcon(
+                            isFavorite = isFavorite,
+                            contentDescription = stringResource(
+                                if (isFavorite) R.string.action_remove_favorite else R.string.action_add_favorite
+                            ),
+                            iconSize = BdixIconSize.md
+                        )
+                    }
+
+                    Icon(
+                        imageVector = statusIcon,
+                        contentDescription = statusDesc,
+                        tint = statusTint,
+                        modifier = Modifier
                             .padding(end = BdixSpacing.sm)
+                            .size(BdixIconSize.md)
                     )
                 }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(BdixIconSize.sm)
+            }
+
+            // Elevated Rich Card Tinted Footer Strip with URL & Open Pill
+            RichCardUrlFooter(
+                url = endpoint.originalUrl,
+                urlA11y = urlA11y,
+                testTag = "server_url_link_${endpoint.id}",
+                onClick = onUrlClick
+            )
+        }
+    }
+}
+
+@Composable
+private fun RichCardUrlFooter(
+    url: String,
+    urlA11y: String,
+    testTag: String,
+    onClick: () -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable(
+                role = Role.Button,
+                onClickLabel = urlA11y,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onClick()
+                }
+            )
+            .semantics { contentDescription = urlA11y }
+            .testTag(testTag)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = BdixSpacing.lg, vertical = BdixSpacing.sm),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            LtrContent {
+                Text(
+                    text = url,
+                    style = MonoUrlStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .padding(end = BdixSpacing.md)
                 )
+            }
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.action_open),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        maxLines = 1
+                    )
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(13.dp)
+                    )
+                }
             }
         }
     }

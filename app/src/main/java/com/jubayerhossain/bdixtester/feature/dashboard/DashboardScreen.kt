@@ -2,7 +2,9 @@ package com.jubayerhossain.bdixtester.feature.dashboard
 
 import android.content.Intent
 import android.provider.Settings
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -13,9 +15,14 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -38,14 +45,20 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Dns
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Radar
+import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,18 +67,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -75,18 +95,29 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import com.jubayerhossain.bdixtester.R
 import com.jubayerhossain.bdixtester.core.model.ScanMode
 import com.jubayerhossain.bdixtester.core.network.NetworkSnapshot
 import com.jubayerhossain.bdixtester.core.network.TransportType
+import com.jubayerhossain.bdixtester.ui.components.BdixMotionSpecs
 import com.jubayerhossain.bdixtester.ui.components.LtrContent
+import com.jubayerhossain.bdixtester.ui.components.PulsingStatusDot
+import com.jubayerhossain.bdixtester.ui.components.RollingCountText
+import com.jubayerhossain.bdixtester.ui.components.ShimmerPillOverlay
+import com.jubayerhossain.bdixtester.ui.components.springPressScale
 import com.jubayerhossain.bdixtester.ui.theme.BdixBorder
+import com.jubayerhossain.bdixtester.ui.theme.BdixIconSize
 import com.jubayerhossain.bdixtester.ui.theme.BdixSpacing
 import com.jubayerhossain.bdixtester.ui.theme.BdixTesterTheme
 import com.jubayerhossain.bdixtester.ui.theme.LocalBdixSemanticColors
 import com.jubayerhossain.bdixtester.ui.theme.MonoHeroNumberStyle
 import com.jubayerhossain.bdixtester.ui.theme.MonoHeroSubNumberStyle
+import com.jubayerhossain.bdixtester.ui.theme.MonoUrlStyle
 import java.util.Locale
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun DashboardScreen(
@@ -115,16 +146,6 @@ fun DashboardScreen(
         wasScanning = isScanning
     }
 
-    val primaryBorderBrush = remember(semantic) {
-        Brush.horizontalGradient(
-            colors = listOf(
-                semantic.ringGradientStart,
-                semantic.ringGradientMid,
-                semantic.ringGradientEnd
-            )
-        )
-    }
-
     val triggerStartScan = {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         if (uiState.networkSnapshot.hasWifiTransport) {
@@ -134,37 +155,71 @@ fun DashboardScreen(
         }
     }
 
+    val ambientTransition = rememberInfiniteTransition(label = "home_ambient_canvas")
+    val ambientAlpha by ambientTransition.animateFloat(
+        initialValue = 0.08f,
+        targetValue = 0.16f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "ambient_aura_alpha"
+    )
+
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .drawBehind {
+                // Full-bleed calm atmospheric radial glow behind the Orbital Radar center stage
+                val auraCenter = Offset(size.width * 0.5f, size.height * 0.44f)
+                val auraRadius = size.maxDimension * 0.56f
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            semantic.ringGradientMid.copy(alpha = ambientAlpha),
+                            semantic.ringGradientStart.copy(alpha = ambientAlpha * 0.4f),
+                            Color.Transparent
+                        ),
+                        center = auraCenter,
+                        radius = auraRadius
+                    ),
+                    radius = auraRadius,
+                    center = auraCenter
+                )
+            }
             .testTag("dashboard_screen")
     ) {
         val isWideLayout = maxWidth >= 600.dp
+        val isCompactHeight = maxHeight < 500.dp
 
         if (isWideLayout) {
             // Adaptive Landscape / Tablet 2-Column Split
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .windowInsetsPadding(WindowInsets.statusBars)
             ) {
-                Surface(
+                HomeBrandTopBar(
+                    networkSnapshot = uiState.networkSnapshot,
+                    isScanning = isScanning
+                )
+                Row(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxHeight(),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    tonalElevation = 1.dp
+                        .fillMaxWidth()
+                        .padding(horizontal = BdixSpacing.xl, vertical = BdixSpacing.md),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = BdixSpacing.xl, vertical = BdixSpacing.lg),
+                            .weight(1.15f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        val ringDiameter = (this@BoxWithConstraints.maxHeight * 0.62f).coerceIn(200.dp, 280.dp)
+                        val ringDiameter = (this@BoxWithConstraints.maxHeight * 0.68f).coerceIn(220.dp, 320.dp)
                         HeroTesterRing(
                             ringSize = ringDiameter,
                             isScanning = isScanning,
@@ -180,27 +235,63 @@ fun DashboardScreen(
                             modifier = Modifier.padding(top = BdixSpacing.md)
                         )
                     }
-                }
 
+                    Column(
+                        modifier = Modifier
+                            .weight(0.85f)
+                            .fillMaxHeight()
+                            .padding(horizontal = BdixSpacing.lg),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        PrimaryTestActionButton(
+                            isScanning = isScanning,
+                            onStartClick = triggerStartScan,
+                            onStopClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onStopScan()
+                            }
+                        )
+                    }
+                }
+            }
+        } else if (isCompactHeight) {
+            // Ultra-compact portrait fallback (split-screen / tiny viewport) with safe scroll
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                HomeBrandTopBar(
+                    networkSnapshot = uiState.networkSnapshot,
+                    isScanning = isScanning
+                )
+                Spacer(modifier = Modifier.height(BdixSpacing.md))
+                HeroTesterRing(
+                    ringSize = (this@BoxWithConstraints.maxWidth * 0.72f).coerceIn(220.dp, 280.dp),
+                    isScanning = isScanning,
+                    isStarting = showWifiWarningDialog,
+                    progressFraction = progress.progressFraction,
+                    workingCount = workingCount,
+                    totalCount = totalCount,
+                    onViewClick = onViewServers
+                )
+                CurrentlyTestingLine(
+                    visible = isScanning && !progress.currentServerName.isNullOrBlank(),
+                    serverName = progress.currentServerName.orEmpty(),
+                    modifier = Modifier.padding(top = BdixSpacing.sm)
+                )
+                Spacer(modifier = Modifier.height(BdixSpacing.xl))
                 Box(
                     modifier = Modifier
-                        .width(BdixBorder.hairline)
-                        .fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.outlineVariant)
-                )
-
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .verticalScroll(rememberScrollState())
+                        .fillMaxWidth()
                         .padding(horizontal = BdixSpacing.xl, vertical = BdixSpacing.lg),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    contentAlignment = Alignment.Center
                 ) {
                     PrimaryTestActionButton(
                         isScanning = isScanning,
-                        primaryBorderBrush = primaryBorderBrush,
                         onStartClick = triggerStartScan,
                         onStopClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -210,62 +301,64 @@ fun DashboardScreen(
                 }
             }
         } else {
-            // Compact Portrait Layout (Scroll-safe for large system font scales)
+            // Sculptural Full-Height Portrait Canvas (Zero dead lower space, zero extra clutter)
+            val heroDiameter = min(
+                maxWidth * 0.86f,
+                (maxHeight - 210.dp).coerceAtLeast(240.dp)
+            ).coerceIn(256.dp, 344.dp)
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
+                    .windowInsetsPadding(WindowInsets.statusBars),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.surfaceContainerLow,
-                    tonalElevation = 1.dp
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .windowInsetsPadding(WindowInsets.statusBars)
-                            .padding(
-                                top = BdixSpacing.xl,
-                                bottom = BdixSpacing.xxl,
-                                start = BdixSpacing.lg,
-                                end = BdixSpacing.lg
-                            ),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        val ringDiameter = (this@BoxWithConstraints.maxWidth * 0.68f).coerceIn(216.dp, 272.dp)
-                        HeroTesterRing(
-                            ringSize = ringDiameter,
-                            isScanning = isScanning,
-                            isStarting = showWifiWarningDialog,
-                            progressFraction = progress.progressFraction,
-                            workingCount = workingCount,
-                            totalCount = totalCount,
-                            onViewClick = onViewServers
-                        )
-                        CurrentlyTestingLine(
-                            visible = isScanning && !progress.currentServerName.isNullOrBlank(),
-                            serverName = progress.currentServerName.orEmpty(),
-                            modifier = Modifier.padding(top = BdixSpacing.md)
-                        )
-                    }
-                }
-
-                HorizontalDivider(
-                    thickness = BdixBorder.hairline,
-                    color = MaterialTheme.colorScheme.outlineVariant
+                // 1. Minimal Brand Top Bar + Live Pulsing IP Pill
+                HomeBrandTopBar(
+                    networkSnapshot = uiState.networkSnapshot,
+                    isScanning = isScanning
                 )
 
+                // 2. Sculptural Center Stage — Oversized Orbital Radar Hero Ring
                 Column(
                     modifier = Modifier
+                        .weight(1f)
                         .fillMaxWidth()
-                        .padding(horizontal = BdixSpacing.xl, vertical = BdixSpacing.xxl),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(horizontal = BdixSpacing.lg),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    HeroTesterRing(
+                        ringSize = heroDiameter,
+                        isScanning = isScanning,
+                        isStarting = showWifiWarningDialog,
+                        progressFraction = progress.progressFraction,
+                        workingCount = workingCount,
+                        totalCount = totalCount,
+                        onViewClick = onViewServers
+                    )
+
+                    CurrentlyTestingLine(
+                        visible = isScanning && !progress.currentServerName.isNullOrBlank(),
+                        serverName = progress.currentServerName.orEmpty(),
+                        modifier = Modifier.padding(top = BdixSpacing.md)
+                    )
+                }
+
+                // 3. Bottom-Anchored Gradient Shimmer Start / Stop Pill (Natural Thumb Zone)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            start = BdixSpacing.xl,
+                            end = BdixSpacing.xl,
+                            top = BdixSpacing.sm,
+                            bottom = 28.dp
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
                     PrimaryTestActionButton(
                         isScanning = isScanning,
-                        primaryBorderBrush = primaryBorderBrush,
                         onStartClick = triggerStartScan,
                         onStopClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -341,56 +434,194 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun PrimaryTestActionButton(
-    isScanning: Boolean,
-    primaryBorderBrush: Brush,
-    onStartClick: () -> Unit,
-    onStopClick: () -> Unit
+private fun HomeBrandTopBar(
+    networkSnapshot: NetworkSnapshot,
+    isScanning: Boolean
 ) {
-    Box(
+    val semantic = LocalBdixSemanticColors.current
+    val (dotColor, transportLabel) = when {
+        !networkSnapshot.isConnected -> semantic.unreachable to stringResource(R.string.home_ip_pill_offline)
+        networkSnapshot.transportType == TransportType.WIFI -> semantic.reachable to stringResource(R.string.home_network_wifi)
+        networkSnapshot.transportType == TransportType.ETHERNET -> semantic.reachable to stringResource(R.string.home_network_ethernet)
+        else -> semantic.restricted to stringResource(R.string.home_network_mobile)
+    }
+    val ipText = networkSnapshot.localIpAddress?.takeIf { it.isNotBlank() }
+    val pillLabel = if (networkSnapshot.isConnected && ipText != null) {
+        stringResource(R.string.home_ip_pill_connected, transportLabel, ipText)
+    } else {
+        transportLabel
+    }
+
+    val iconSpinTransition = rememberInfiniteTransition(label = "brand_radar_spin")
+    val radarRotation by iconSpinTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = if (isScanning) 1800 else 11000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "brand_radar_angle"
+    )
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .widthIn(max = 360.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = BdixSpacing.lg, vertical = BdixSpacing.md),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        if (isScanning) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(BdixSpacing.sm)
+        ) {
             Surface(
-                onClick = onStopClick,
-                shape = RoundedCornerShape(50),
-                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f),
-                border = BorderStroke(BdixBorder.hero, MaterialTheme.colorScheme.error),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 56.dp)
-                    .testTag("home_stop_test_button")
+                shape = RoundedCornerShape(11.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+                modifier = Modifier.size(34.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = stringResource(R.string.home_action_stop),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error
+                    Icon(
+                        imageVector = Icons.Rounded.Radar,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .size(19.dp)
+                            .graphicsLayer { rotationZ = radarRotation }
                     )
                 }
             }
-        } else {
-            Surface(
-                onClick = onStartClick,
-                shape = RoundedCornerShape(50),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                border = BorderStroke(BdixBorder.hero, primaryBorderBrush),
-                shadowElevation = 2.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 56.dp)
-                    .testTag("home_start_test_button")
+            Text(
+                text = stringResource(R.string.app_name),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        Surface(
+            shape = RoundedCornerShape(50),
+            color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.92f),
+            border = BorderStroke(BdixBorder.hairline, MaterialTheme.colorScheme.outlineVariant),
+            tonalElevation = 1.dp,
+            modifier = Modifier.testTag("home_top_ip_pill")
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                PulsingStatusDot(
+                    color = dotColor,
+                    isLive = networkSnapshot.isConnected,
+                    dotSize = 7.dp
+                )
+                LtrContent {
                     Text(
-                        text = stringResource(R.string.home_action_start_test),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        text = pillLabel,
+                        style = MonoUrlStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PrimaryTestActionButton(
+    isScanning: Boolean,
+    onStartClick: () -> Unit,
+    onStopClick: () -> Unit
+) {
+    val semantic = LocalBdixSemanticColors.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val pillShape = RoundedCornerShape(50)
+
+    val startColor by animateColorAsState(
+        targetValue = if (isScanning) MaterialTheme.colorScheme.error else semantic.ringGradientStart,
+        animationSpec = tween(320),
+        label = "cta_start_color"
+    )
+    val midColor by animateColorAsState(
+        targetValue = if (isScanning) MaterialTheme.colorScheme.error.copy(alpha = 0.9f) else semantic.ringGradientMid,
+        animationSpec = tween(320),
+        label = "cta_mid_color"
+    )
+    val endColor by animateColorAsState(
+        targetValue = if (isScanning) Color(0xFFDC2626) else semantic.ringGradientEnd,
+        animationSpec = tween(320),
+        label = "cta_end_color"
+    )
+
+    val gradientBrush = Brush.horizontalGradient(
+        colors = listOf(startColor, midColor, endColor)
+    )
+
+    val actionLabel = stringResource(
+        if (isScanning) R.string.home_action_stop else R.string.home_action_start_test
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 380.dp)
+            .springPressScale(interactionSource = interactionSource, pressedScale = 0.96f)
+            .shadow(
+                elevation = if (isScanning) 10.dp else 14.dp,
+                shape = pillShape,
+                ambientColor = midColor.copy(alpha = 0.45f),
+                spotColor = midColor.copy(alpha = 0.55f)
+            )
+            .clip(pillShape)
+            .background(brush = gradientBrush)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(color = Color.White.copy(alpha = 0.25f)),
+                role = Role.Button,
+                onClickLabel = actionLabel,
+                onClick = if (isScanning) onStopClick else onStartClick
+            )
+            .heightIn(min = 58.dp)
+            .testTag(if (isScanning) "home_stop_test_button" else "home_start_test_button"),
+        contentAlignment = Alignment.Center
+    ) {
+        // Gliding diagonal light shimmer across the gradient pill
+        ShimmerPillOverlay(
+            modifier = Modifier.matchParentSize(),
+            shimmerColor = Color.White.copy(alpha = if (isScanning) 0.16f else 0.28f),
+            durationMillis = if (isScanning) 1700 else 2800
+        )
+
+        AnimatedContent(
+            targetState = isScanning,
+            transitionSpec = {
+                (fadeIn(tween(220)) + scaleIn(initialScale = 0.92f)) togetherWith
+                    (fadeOut(tween(160)) + scaleOut(targetScale = 0.92f))
+            },
+            label = "cta_content_morph"
+        ) { scanning ->
+            Row(
+                modifier = Modifier.padding(horizontal = BdixSpacing.xl, vertical = BdixSpacing.md),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = if (scanning) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(if (scanning) BdixIconSize.md else 24.dp)
+                )
+                Spacer(modifier = Modifier.width(BdixSpacing.sm))
+                Text(
+                    text = stringResource(
+                        if (scanning) R.string.home_action_stop else R.string.home_action_start_test
+                    ),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White
+                )
             }
         }
     }
@@ -404,23 +635,29 @@ private fun CurrentlyTestingLine(
 ) {
     AnimatedVisibility(
         visible = visible,
-        enter = fadeIn(),
-        exit = fadeOut(),
+        enter = fadeIn(tween(220)),
+        exit = fadeOut(tween(180)),
         modifier = modifier
     ) {
         LtrContent {
-            Text(
-                text = stringResource(R.string.home_currently_testing, serverName),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .padding(horizontal = BdixSpacing.md)
-                    .semantics { liveRegion = LiveRegionMode.Polite }
-                    .testTag("home_currently_testing_label")
-            )
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.86f),
+                border = BorderStroke(BdixBorder.hairline, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Text(
+                    text = stringResource(R.string.home_currently_testing, serverName),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .padding(horizontal = BdixSpacing.md, vertical = 6.dp)
+                        .semantics { liveRegion = LiveRegionMode.Polite }
+                        .testTag("home_currently_testing_label")
+                )
+            }
         }
     }
 }
@@ -436,29 +673,100 @@ private fun HeroTesterRing(
     onViewClick: () -> Unit
 ) {
     val semantic = LocalBdixSemanticColors.current
+    val haptic = LocalHapticFeedback.current
+    val viewInteractionSource = remember { MutableInteractionSource() }
+
     val animatedProgress by animateFloatAsState(
         targetValue = progressFraction.coerceIn(0f, 1f),
-        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "scan_progress"
     )
 
-    val infiniteTransition = rememberInfiniteTransition(label = "ring_rotation")
-    val spinAngle by infiniteTransition.animateFloat(
+    val ringBreathingScale by animateFloatAsState(
+        targetValue = if (isScanning) 1.02f else 1f,
+        animationSpec = BdixMotionSpecs.bouncySpring,
+        label = "scan_ring_scale"
+    )
+
+    val infiniteTransition = rememberInfiniteTransition(label = "orbital_radar_motion")
+
+    // Main sweep rotation during active scan
+    val scanSpinAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2600, easing = LinearEasing),
+            animation = tween(durationMillis = 2200, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "spin_angle"
+        label = "scan_spin_angle"
     )
 
-    val ringColors = listOf(
-        semantic.ringGradientStart,
-        semantic.ringGradientMid,
-        semantic.ringGradientEnd,
-        semantic.ringGradientStart
+    // Slow continuous orbital track & satellite particle rotation
+    val orbitAngle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = if (isScanning) 5500 else 15000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "orbit_angle"
     )
+
+    // Counter-rotating precision tick ring
+    val tickAngle by infiniteTransition.animateFloat(
+        initialValue = 360f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = if (isScanning) 9000 else 26000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "tick_angle"
+    )
+
+    // Two staggered outward sonar ripple waves
+    val sonarWave1 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = if (isScanning) 1900 else 3600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "sonar_wave_1"
+    )
+    val sonarWave2 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = if (isScanning) 1900 else 3600,
+                delayMillis = if (isScanning) 950 else 1800,
+                easing = FastOutSlowInEasing
+            ),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "sonar_wave_2"
+    )
+
+    // Breathing inner aura alpha
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.14f,
+        targetValue = 0.28f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "hero_glow_alpha"
+    )
+
+    val ringColors = remember(semantic) {
+        listOf(
+            semantic.ringGradientStart,
+            semantic.ringGradientMid,
+            semantic.ringGradientEnd,
+            semantic.ringGradientStart
+        )
+    }
+    val dashedOrbitEffect = remember { PathEffect.dashPathEffect(floatArrayOf(10f, 14f), 0f) }
 
     val ringA11yDescription = if (isScanning) {
         stringResource(
@@ -473,32 +781,138 @@ private fun HeroTesterRing(
     Box(
         modifier = Modifier
             .size(ringSize)
+            .graphicsLayer {
+                scaleX = ringBreathingScale
+                scaleY = ringBreathingScale
+            }
             .testTag("home_tester_ring"),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val outerStrokePx = 11.dp.toPx()
-            val innerStrokePx = 5.dp.toPx()
-            val outerInset = outerStrokePx / 2f
-            val outerArcSize = Size(size.width - outerStrokePx, size.height - outerStrokePx)
-            val innerInset = outerStrokePx + 1.5.dp.toPx()
-            val innerArcSize = Size(
-                (size.width - innerInset * 2f).coerceAtLeast(0f),
-                (size.height - innerInset * 2f).coerceAtLeast(0f)
-            )
-            val sweepBrush = Brush.sweepGradient(colors = ringColors)
-            val innerSoftBrush = Brush.sweepGradient(
-                colors = ringColors.map { it.copy(alpha = 0.35f) }
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val fullRadius = size.minDimension / 2f
+
+            // Layer 1: Soft ambient radial nebula aura
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        semantic.ringGradientMid.copy(alpha = glowAlpha),
+                        semantic.ringGradientStart.copy(alpha = glowAlpha * 0.42f),
+                        Color.Transparent
+                    ),
+                    center = center,
+                    radius = fullRadius
+                ),
+                radius = fullRadius,
+                center = center
             )
 
+            val mainRingRadius = fullRadius * 0.77f
+            val orbitRadius = fullRadius * 0.91f
+            val tickOuterRadius = mainRingRadius + 13.dp.toPx()
+            val tickInnerRadius = mainRingRadius + 8.dp.toPx()
+
+            // Layer 2: Two staggered expanding sonar pulse waves
+            listOf(sonarWave1, sonarWave2).forEach { wave ->
+                val waveRadius = mainRingRadius + (fullRadius - mainRingRadius) * wave
+                val waveAlpha = (1f - wave) * (if (isScanning) 0.34f else 0.20f)
+                drawCircle(
+                    color = semantic.ringGradientMid.copy(alpha = waveAlpha),
+                    radius = waveRadius,
+                    center = center,
+                    style = Stroke(width = (2.2f - wave * 1.4f).dp.toPx())
+                )
+            }
+
+            // Layer 3: Outer rotating dashed orbital track + 3 glowing orbiting particles
+            rotate(degrees = orbitAngle, pivot = center) {
+                drawCircle(
+                    color = semantic.ringGradientStart.copy(alpha = if (isScanning) 0.32f else 0.22f),
+                    radius = orbitRadius,
+                    center = center,
+                    style = Stroke(width = 1.4.dp.toPx(), pathEffect = dashedOrbitEffect)
+                )
+
+                val particleAngles = listOf(0.0, 120.0, 240.0)
+                val particleColors = listOf(
+                    semantic.ringGradientStart,
+                    semantic.ringGradientMid,
+                    semantic.ringGradientEnd
+                )
+                particleAngles.forEachIndexed { idx, deg ->
+                    val rad = deg * PI / 180.0
+                    val px = center.x + (orbitRadius * cos(rad)).toFloat()
+                    val py = center.y + (orbitRadius * sin(rad)).toFloat()
+                    val pos = Offset(px, py)
+                    val pColor = particleColors[idx]
+                    val coreRadius = if (idx == 0) 4.2.dp.toPx() else 3.2.dp.toPx()
+
+                    // Particle halo glow
+                    drawCircle(
+                        color = pColor.copy(alpha = 0.28f),
+                        radius = coreRadius * 2.4f,
+                        center = pos
+                    )
+                    // Particle crisp luminous core
+                    drawCircle(
+                        color = pColor,
+                        radius = coreRadius,
+                        center = pos
+                    )
+                }
+            }
+
+            // Layer 4: Counter-rotating precision 36-tick telemetry ring
+            rotate(degrees = tickAngle, pivot = center) {
+                val tickCount = 36
+                for (i in 0 until tickCount) {
+                    val deg = i * (360.0 / tickCount)
+                    val rad = deg * PI / 180.0
+                    val isMajor = i % 3 == 0
+                    val innerR = if (isMajor) tickInnerRadius - 2.dp.toPx() else tickInnerRadius
+                    val start = Offset(
+                        center.x + (innerR * cos(rad)).toFloat(),
+                        center.y + (innerR * sin(rad)).toFloat()
+                    )
+                    val end = Offset(
+                        center.x + (tickOuterRadius * cos(rad)).toFloat(),
+                        center.y + (tickOuterRadius * sin(rad)).toFloat()
+                    )
+                    drawLine(
+                        color = semantic.ringGradientMid.copy(alpha = if (isMajor) 0.42f else 0.18f),
+                        start = start,
+                        end = end,
+                        strokeWidth = if (isMajor) 1.6.dp.toPx() else 1.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                }
+            }
+
+            // Layer 5: Primary gradient ring + inner soft ring + scanning sweep comet
+            val outerStrokePx = 12.dp.toPx()
+            val innerStrokePx = 4.dp.toPx()
+            val outerTopLeft = Offset(center.x - mainRingRadius, center.y - mainRingRadius)
+            val outerArcSize = Size(mainRingRadius * 2f, mainRingRadius * 2f)
+
+            val innerRingRadius = (mainRingRadius - outerStrokePx * 0.95f).coerceAtLeast(0f)
+            val innerTopLeft = Offset(center.x - innerRingRadius, center.y - innerRingRadius)
+            val innerArcSize = Size(innerRingRadius * 2f, innerRingRadius * 2f)
+
+            val sweepBrush = Brush.sweepGradient(colors = ringColors, center = center)
+            val innerSoftBrush = Brush.sweepGradient(
+                colors = ringColors.map { it.copy(alpha = 0.30f) },
+                center = center
+            )
+
+            // Soft ring halo
             drawArc(
-                color = semantic.ringGradientMid.copy(alpha = 0.14f),
+                color = semantic.ringGradientMid.copy(alpha = if (isScanning) 0.24f else glowAlpha * 0.78f),
                 startAngle = 0f,
                 sweepAngle = 360f,
                 useCenter = false,
-                topLeft = Offset(outerInset, outerInset),
+                topLeft = outerTopLeft,
                 size = outerArcSize,
-                style = Stroke(width = outerStrokePx + 8.dp.toPx())
+                style = Stroke(width = outerStrokePx + 12.dp.toPx())
             )
 
             if (isScanning || isStarting) {
@@ -507,17 +921,18 @@ private fun HeroTesterRing(
                     startAngle = 0f,
                     sweepAngle = 360f,
                     useCenter = false,
-                    topLeft = Offset(outerInset, outerInset),
+                    topLeft = outerTopLeft,
                     size = outerArcSize,
                     style = Stroke(width = outerStrokePx)
                 )
-                rotate(degrees = spinAngle) {
+                val sweepDegrees = if (isStarting) 250f else (84f + 276f * animatedProgress).coerceAtMost(360f)
+                rotate(degrees = scanSpinAngle, pivot = center) {
                     drawArc(
                         brush = sweepBrush,
                         startAngle = -90f,
-                        sweepAngle = if (isStarting) 270f else (80f + 280f * animatedProgress).coerceAtMost(360f),
+                        sweepAngle = sweepDegrees,
                         useCenter = false,
-                        topLeft = Offset(outerInset, outerInset),
+                        topLeft = outerTopLeft,
                         size = outerArcSize,
                         style = Stroke(width = outerStrokePx, cap = StrokeCap.Round)
                     )
@@ -526,35 +941,50 @@ private fun HeroTesterRing(
                         startAngle = -90f,
                         sweepAngle = 360f,
                         useCenter = false,
-                        topLeft = Offset(innerInset, innerInset),
+                        topLeft = innerTopLeft,
                         size = innerArcSize,
                         style = Stroke(width = innerStrokePx)
                     )
+
+                    // Bright luminous comet head at the leading edge of the scan arc
+                    val headRad = (-90.0 + sweepDegrees) * PI / 180.0
+                    val headPos = Offset(
+                        center.x + (mainRingRadius * cos(headRad)).toFloat(),
+                        center.y + (mainRingRadius * sin(headRad)).toFloat()
+                    )
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.92f),
+                        radius = 4.5.dp.toPx(),
+                        center = headPos
+                    )
                 }
             } else {
-                drawArc(
-                    brush = sweepBrush,
-                    startAngle = -90f,
-                    sweepAngle = 360f,
-                    useCenter = false,
-                    topLeft = Offset(outerInset, outerInset),
-                    size = outerArcSize,
-                    style = Stroke(width = outerStrokePx, cap = StrokeCap.Round)
-                )
+                rotate(degrees = orbitAngle * 0.35f, pivot = center) {
+                    drawArc(
+                        brush = sweepBrush,
+                        startAngle = -90f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        topLeft = outerTopLeft,
+                        size = outerArcSize,
+                        style = Stroke(width = outerStrokePx, cap = StrokeCap.Round)
+                    )
+                }
                 drawArc(
                     brush = innerSoftBrush,
                     startAngle = -90f,
                     sweepAngle = 360f,
                     useCenter = false,
-                    topLeft = Offset(innerInset, innerInset),
+                    topLeft = innerTopLeft,
                     size = innerArcSize,
                     style = Stroke(width = innerStrokePx)
                 )
             }
         }
 
+        // Layer 6: Interactive Core with Rolling Counter & Spring-Bouncy VIEW Pill
         Column(
-            modifier = Modifier.padding(horizontal = BdixSpacing.xl),
+            modifier = Modifier.padding(horizontal = BdixSpacing.xxl),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(BdixSpacing.xs)
         ) {
@@ -570,7 +1000,7 @@ private fun HeroTesterRing(
                     isStarting -> {
                         Text(
                             text = stringResource(R.string.home_starting_title),
-                            style = MaterialTheme.typography.displaySmall,
+                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center
                         )
@@ -586,7 +1016,7 @@ private fun HeroTesterRing(
                         LtrContent {
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Text(
-                                    text = "%.2f".format(Locale.US, animatedProgress * 100f),
+                                    text = "%.1f".format(Locale.US, animatedProgress * 100f),
                                     style = MonoHeroNumberStyle,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -606,7 +1036,7 @@ private fun HeroTesterRing(
                         )
                         Text(
                             text = stringResource(R.string.home_working_servers_count_live, workingCount),
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = semantic.reachable,
                             textAlign = TextAlign.Center
                         )
@@ -615,8 +1045,8 @@ private fun HeroTesterRing(
                     else -> {
                         LtrContent {
                             Row(verticalAlignment = Alignment.Bottom) {
-                                Text(
-                                    text = workingCount.toString(),
+                                RollingCountText(
+                                    count = workingCount,
                                     style = MonoHeroNumberStyle,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -641,15 +1071,27 @@ private fun HeroTesterRing(
             Spacer(modifier = Modifier.height(BdixSpacing.xs))
 
             OutlinedButton(
-                onClick = onViewClick,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onViewClick()
+                },
+                interactionSource = viewInteractionSource,
                 shape = RoundedCornerShape(50),
                 border = BorderStroke(BdixBorder.accent, MaterialTheme.colorScheme.primary),
-                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 22.dp, vertical = 8.dp),
                 modifier = Modifier
+                    .springPressScale(interactionSource = viewInteractionSource, pressedScale = 0.94f)
                     .heightIn(min = 48.dp)
                     .minimumInteractiveComponentSize()
                     .testTag("home_view_servers_button")
             ) {
+                Icon(
+                    imageVector = Icons.Rounded.Dns,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     text = stringResource(R.string.home_action_view),
                     style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),

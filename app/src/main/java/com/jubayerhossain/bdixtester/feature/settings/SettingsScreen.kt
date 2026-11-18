@@ -1,6 +1,17 @@
 package com.jubayerhossain.bdixtester.feature.settings
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,10 +25,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.AddCircleOutline
 import androidx.compose.material.icons.rounded.Autorenew
 import androidx.compose.material.icons.rounded.Bolt
 import androidx.compose.material.icons.rounded.BookmarkRemove
@@ -25,14 +41,15 @@ import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.DataUsage
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DeleteSweep
+import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Radar
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Router
 import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.Translate
@@ -61,9 +78,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -72,11 +93,19 @@ import com.jubayerhossain.bdixtester.R
 import com.jubayerhossain.bdixtester.core.model.AppLanguage
 import com.jubayerhossain.bdixtester.core.model.ScanMode
 import com.jubayerhossain.bdixtester.core.model.ThemePreference
+import com.jubayerhossain.bdixtester.core.network.NetworkSnapshot
+import com.jubayerhossain.bdixtester.core.network.TransportType
+import com.jubayerhossain.bdixtester.data.catalog.BdOttPlatforms
 import com.jubayerhossain.bdixtester.ui.components.LtrContent
+import com.jubayerhossain.bdixtester.ui.components.PulsingStatusDot
+import com.jubayerhossain.bdixtester.ui.theme.BdixBorder
 import com.jubayerhossain.bdixtester.ui.theme.BdixSpacing
 import com.jubayerhossain.bdixtester.ui.theme.BdixTesterTheme
+import com.jubayerhossain.bdixtester.ui.theme.LocalBdixSemanticColors
 import com.jubayerhossain.bdixtester.ui.theme.MonoUrlStyle
 import kotlin.math.roundToInt
+
+private const val FACEBOOK_COMMUNITY_URL = "https://www.facebook.com/search/top/?q=BDIX%20Tester"
 
 private enum class BulkDeleteAction {
     HISTORY,
@@ -116,12 +145,19 @@ fun SettingsScreen(
     onClearFavorites: () -> Unit,
     onDeleteCustomServers: () -> Unit,
     onResetAllData: () -> Unit,
+    onUpdateServerListClick: () -> Unit = {},
+    onAddServerRequestClick: () -> Unit = {},
+    onOpenExternalUrl: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val settings = uiState.settings
     val sync = uiState.catalogSyncState
     var activeDialog by remember { mutableStateOf<ActiveSettingsDialog?>(null) }
     var pendingBulkAction by remember { mutableStateOf<BulkDeleteAction?>(null) }
+    var showPrivacyPolicyDialog by remember { mutableStateOf(false) }
+    val shareMessage = stringResource(R.string.settings_share_app_message)
+    val shareTitle = stringResource(R.string.settings_share_app_title)
 
     val currentCapMib = (settings.speedTestMaxBytes / (1024L * 1024L)).toInt()
     val scanModeIcon = if (settings.defaultScanMode == ScanMode.QUICK_SCAN) {
@@ -175,7 +211,8 @@ fun SettingsScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .testTag("settings_list"),
             contentPadding = PaddingValues(
                 start = BdixSpacing.lg,
                 end = BdixSpacing.lg,
@@ -185,7 +222,46 @@ fun SettingsScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(BdixSpacing.sm)
         ) {
-            // 1. Appearance & Language
+            // 0. App Profile & Live IP Header Card
+            item {
+                SettingsAppProfileHeaderCard(
+                    networkSnapshot = uiState.networkSnapshot,
+                    totalBdixServers = uiState.totalServerCount,
+                    totalOttPlatforms = BdOttPlatforms.all.size
+                )
+            }
+
+            // 1. Servers & Catalog Actions
+            item {
+                SettingsSectionHeader(title = stringResource(R.string.settings_quick_actions_section))
+            }
+            item {
+                SettingsGroupCard {
+                    SettingsNavigationRow(
+                        icon = Icons.Rounded.Sync,
+                        title = stringResource(R.string.drawer_update_server_list),
+                        subtitle = stringResource(R.string.settings_update_server_list_subtitle),
+                        onClick = {
+                            if (settings.remoteCatalogUrl.isBlank()) {
+                                activeDialog = ActiveSettingsDialog.REMOTE_URL
+                            } else {
+                                onUpdateServerListClick()
+                            }
+                        },
+                        testTag = "settings_update_server_list_row"
+                    )
+                    SettingsRowDivider()
+                    SettingsNavigationRow(
+                        icon = Icons.Rounded.AddCircleOutline,
+                        title = stringResource(R.string.drawer_add_server_request),
+                        subtitle = stringResource(R.string.settings_add_server_request_subtitle),
+                        onClick = onAddServerRequestClick,
+                        testTag = "settings_add_server_request_row"
+                    )
+                }
+            }
+
+            // 2. Appearance & Language
             item {
                 SettingsSectionHeader(title = stringResource(R.string.settings_appearance_section))
             }
@@ -393,6 +469,17 @@ fun SettingsScreen(
                             }
                         }
 
+                        val syncSpinTransition = rememberInfiniteTransition(label = "settings_sync_spin")
+                        val syncAngle by syncSpinTransition.animateFloat(
+                            initialValue = 0f,
+                            targetValue = 360f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(durationMillis = 1200, easing = LinearEasing),
+                                repeatMode = RepeatMode.Restart
+                            ),
+                            label = "sync_icon_angle"
+                        )
+
                         Button(
                             onClick = { onSyncNowClick(settings.remoteCatalogUrl) },
                             enabled = !uiState.isSyncing && settings.remoteCatalogUrl.isNotBlank(),
@@ -411,7 +498,11 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Rounded.Sync,
                                 contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .graphicsLayer {
+                                        rotationZ = if (uiState.isSyncing) syncAngle else 0f
+                                    }
                             )
                             Spacer(modifier = Modifier.width(BdixSpacing.sm))
                             Text(
@@ -477,45 +568,58 @@ fun SettingsScreen(
                 }
             }
 
-            // 5. Privacy & About
+            // 6. Community, Privacy & About
             item {
-                SettingsSectionHeader(title = stringResource(R.string.settings_privacy_section))
+                SettingsSectionHeader(title = stringResource(R.string.settings_community_section))
             }
             item {
                 SettingsGroupCard {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = BdixSpacing.lg, vertical = BdixSpacing.md),
-                        horizontalArrangement = Arrangement.spacedBy(BdixSpacing.md),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        SettingsIconBadge(icon = Icons.Rounded.VerifiedUser)
-                        Text(
-                            text = stringResource(R.string.settings_privacy_summary),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                    SettingsNavigationRow(
+                        icon = Icons.Rounded.VerifiedUser,
+                        title = stringResource(R.string.drawer_privacy_policy),
+                        subtitle = stringResource(R.string.settings_privacy_policy_subtitle),
+                        onClick = { showPrivacyPolicyDialog = true },
+                        testTag = "settings_privacy_policy_row"
+                    )
+                    SettingsRowDivider()
+                    SettingsNavigationRow(
+                        icon = Icons.Rounded.Groups,
+                        title = stringResource(R.string.settings_facebook_page_title),
+                        subtitle = stringResource(R.string.settings_facebook_page_subtitle),
+                        onClick = { onOpenExternalUrl(FACEBOOK_COMMUNITY_URL) },
+                        testTag = "settings_facebook_row"
+                    )
+                    SettingsRowDivider()
+                    SettingsNavigationRow(
+                        icon = Icons.Rounded.Share,
+                        title = stringResource(R.string.settings_share_app_title),
+                        subtitle = stringResource(R.string.settings_share_app_subtitle),
+                        onClick = {
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.app_name))
+                                putExtra(Intent.EXTRA_TEXT, shareMessage)
+                            }
+                            try {
+                                context.startActivity(Intent.createChooser(shareIntent, shareTitle))
+                            } catch (_: ActivityNotFoundException) {
+                                // Ignore when no share target exists in headless/test environments
+                            }
+                        },
+                        testTag = "settings_share_app_row"
+                    )
                     SettingsRowDivider()
                     SettingsInfoRow(
                         icon = Icons.Rounded.Person,
                         title = stringResource(R.string.settings_developer_label),
                         value = stringResource(R.string.settings_developer_value)
                     )
-                    SettingsRowDivider()
-                    SettingsInfoRow(
-                        icon = Icons.Rounded.Info,
-                        title = stringResource(R.string.settings_version_label),
-                        value = "${BuildConfig.VERSION_NAME} · ${BuildConfig.APPLICATION_ID}",
-                        valueMonospace = true
-                    )
                 }
             }
 
+            // 7. Clean Centered Version & Build Footer
             item {
-                Spacer(modifier = Modifier.height(BdixSpacing.sm))
+                SettingsVersionFooter()
             }
         }
     }
@@ -637,6 +741,53 @@ fun SettingsScreen(
         null -> Unit
     }
 
+    // Full Privacy Policy Modal Dialog
+    if (showPrivacyPolicyDialog) {
+        AlertDialog(
+            onDismissRequest = { showPrivacyPolicyDialog = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier.testTag("settings_privacy_policy_dialog"),
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(BdixSpacing.md)
+                ) {
+                    SettingsIconBadge(icon = Icons.Rounded.VerifiedUser)
+                    Text(
+                        text = stringResource(R.string.drawer_privacy_policy),
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_privacy_policy_full_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showPrivacyPolicyDialog = false },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .testTag("settings_privacy_policy_close_button")
+                ) {
+                    Text(stringResource(R.string.privacy_dialog_close))
+                }
+            }
+        )
+    }
+
     // Destructive Action Confirmation Dialog
     pendingBulkAction?.let { action ->
         AlertDialog(
@@ -690,6 +841,182 @@ fun SettingsScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun SettingsAppProfileHeaderCard(
+    networkSnapshot: NetworkSnapshot,
+    totalBdixServers: Int,
+    totalOttPlatforms: Int
+) {
+    val semantic = LocalBdixSemanticColors.current
+    val isConnected = networkSnapshot.isConnected
+    val transportLabel = when (networkSnapshot.transportType) {
+        TransportType.WIFI -> stringResource(R.string.home_network_wifi)
+        TransportType.CELLULAR -> stringResource(R.string.home_network_mobile)
+        TransportType.ETHERNET -> stringResource(R.string.home_network_ethernet)
+        else -> stringResource(R.string.home_network_offline)
+    }
+    val ipDisplay = networkSnapshot.localIpAddress?.takeIf { it.isNotBlank() }
+        ?: stringResource(R.string.drawer_ip_unavailable)
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 720.dp)
+            .testTag("settings_app_header_card"),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        tonalElevation = 2.dp,
+        border = BorderStroke(BdixBorder.hairline, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(BdixSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(BdixSpacing.md)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(BdixSpacing.md),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    semantic.ringGradientStart,
+                                    semantic.ringGradientMid,
+                                    semantic.ringGradientEnd
+                                )
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Radar,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(30.dp)
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(999.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
+                    ) {
+                        Text(
+                            text = stringResource(
+                                R.string.settings_header_catalog_summary,
+                                totalBdixServers,
+                                totalOttPlatforms
+                            ),
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontFeatureSettings = "tnum"
+                            ),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            // Live Network & IP Strip
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                border = BorderStroke(
+                    BdixBorder.hairline,
+                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.65f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = BdixSpacing.md, vertical = BdixSpacing.sm),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        PulsingStatusDot(
+                            color = if (isConnected) semantic.reachable else semantic.unreachable,
+                            isLive = isConnected,
+                            dotSize = 8.dp
+                        )
+                        Text(
+                            text = transportLabel,
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    LtrContent {
+                        Text(
+                            text = stringResource(R.string.drawer_ip_label, ipDisplay),
+                            style = MonoUrlStyle.copy(fontWeight = FontWeight.Medium),
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsVersionFooter() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 720.dp)
+            .padding(top = BdixSpacing.md, bottom = BdixSpacing.lg)
+            .testTag("settings_version_footer"),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = stringResource(
+                R.string.settings_footer_version_build,
+                BuildConfig.VERSION_NAME,
+                BuildConfig.VERSION_CODE
+            ),
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontFeatureSettings = "tnum"
+            ),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        LtrContent {
+            Text(
+                text = BuildConfig.APPLICATION_ID,
+                style = MonoUrlStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 

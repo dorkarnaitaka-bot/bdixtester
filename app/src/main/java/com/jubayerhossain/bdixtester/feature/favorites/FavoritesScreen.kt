@@ -2,6 +2,7 @@ package com.jubayerhossain.bdixtester.feature.favorites
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -42,6 +43,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,6 +72,7 @@ import com.jubayerhossain.bdixtester.ui.components.ExportMenuButton
 import com.jubayerhossain.bdixtester.ui.components.LtrContent
 import com.jubayerhossain.bdixtester.ui.components.ServerCard
 import com.jubayerhossain.bdixtester.ui.components.StatusBadge
+import com.jubayerhossain.bdixtester.ui.components.springPressScale
 import com.jubayerhossain.bdixtester.ui.theme.BdixBorder
 import com.jubayerhossain.bdixtester.ui.theme.BdixIconSize
 import com.jubayerhossain.bdixtester.ui.theme.BdixSpacing
@@ -163,7 +166,8 @@ fun SavedServersScreen(
                             isPinned = item.favorite.isPinned,
                             onToggleFavorite = { onToggleFavorite(item.endpoint.id) },
                             onTogglePin = { onSetPinned(item.endpoint.id, !item.favorite.isPinned) },
-                            onVisitWebsiteClick = { onOpenUrl(item.endpoint.originalUrl) }
+                            onVisitWebsiteClick = { onOpenUrl(item.endpoint.originalUrl) },
+                            modifier = Modifier.animateItem()
                         )
                     }
                 }
@@ -305,7 +309,8 @@ fun HistoryScreen(
                         HistoryRowCard(
                             entry = entry,
                             onOpenUrl = { onOpenUrl(entry.urlSnapshot) },
-                            onDelete = { onDeleteHistoryEntry(entry.historyId) }
+                            onDelete = { onDeleteHistoryEntry(entry.historyId) },
+                            modifier = Modifier.animateItem()
                         )
                     }
                 }
@@ -384,15 +389,18 @@ private fun SearchFieldRow(
 private fun HistoryRowCard(
     entry: ServerTestResult,
     onOpenUrl: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
     val displayName = entry.serverNameSnapshot.ifBlank { entry.serverId }
     val urlA11y = stringResource(R.string.servers_open_url_a11y, displayName)
 
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .springPressScale(interactionSource = interactionSource, pressedScale = 0.975f)
             .testTag("history_item_${entry.historyId}"),
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -404,6 +412,8 @@ private fun HistoryRowCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(
+                        interactionSource = interactionSource,
+                        indication = ripple(),
                         enabled = entry.urlSnapshot.isNotBlank(),
                         role = Role.Button,
                         onClickLabel = urlA11y,

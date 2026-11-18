@@ -1,6 +1,8 @@
 package com.jubayerhossain.bdixtester.navigation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -38,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -67,6 +70,7 @@ import com.jubayerhossain.bdixtester.feature.servers.ServersScreen
 import com.jubayerhossain.bdixtester.feature.servers.ServersViewModel
 import com.jubayerhossain.bdixtester.feature.settings.SettingsScreen
 import com.jubayerhossain.bdixtester.feature.settings.SettingsViewModel
+import com.jubayerhossain.bdixtester.ui.components.BdixMotionSpecs
 import com.jubayerhossain.bdixtester.ui.components.CustomServerDialog
 import com.jubayerhossain.bdixtester.ui.theme.BdixIconSize
 import kotlinx.coroutines.launch
@@ -178,6 +182,16 @@ fun BdixTesterAppRoot(
             NavHost(
                 navController = navController,
                 startDestination = BdixRoutes.HOME,
+                enterTransition = {
+                    fadeIn(animationSpec = tween(220)) +
+                        slideInVertically(animationSpec = tween(240)) { it / 32 }
+                },
+                exitTransition = { fadeOut(animationSpec = tween(160)) },
+                popEnterTransition = {
+                    fadeIn(animationSpec = tween(220)) +
+                        slideInVertically(animationSpec = tween(240)) { it / 32 }
+                },
+                popExitTransition = { fadeOut(animationSpec = tween(160)) },
                 modifier = contentModifier.fillMaxSize()
             ) {
                 composable(BdixRoutes.HOME) {
@@ -260,7 +274,13 @@ fun BdixTesterAppRoot(
                         onClearHistory = settingsViewModel::clearAllHistory,
                         onClearFavorites = settingsViewModel::clearAllFavorites,
                         onDeleteCustomServers = settingsViewModel::deleteAllCustomServers,
-                        onResetAllData = settingsViewModel::resetAllLocalData
+                        onResetAllData = settingsViewModel::resetAllLocalData,
+                        onUpdateServerListClick = ::triggerCatalogSyncFromToolbar,
+                        onAddServerRequestClick = {
+                            serversViewModel.clearCustomServerError()
+                            showAddServerDialog = true
+                        },
+                        onOpenExternalUrl = ::openExternalUrl
                     )
                 }
             }
@@ -362,6 +382,11 @@ private fun BdixBottomNavigationBar(
         TopLevelDestination.entries.forEach { destination ->
             val selected = activeRoute == destination.route
             val label = stringResource(destination.labelRes)
+            val iconScale by animateFloatAsState(
+                targetValue = if (selected) 1.14f else 1f,
+                animationSpec = BdixMotionSpecs.bouncySpring,
+                label = "nav_bar_icon_scale_${destination.route}"
+            )
             NavigationBarItem(
                 selected = selected,
                 onClick = { onSelectDestination(destination.route) },
@@ -369,7 +394,12 @@ private fun BdixBottomNavigationBar(
                     Icon(
                         imageVector = if (selected) destination.selectedIcon else destination.unselectedIcon,
                         contentDescription = label,
-                        modifier = Modifier.size(BdixIconSize.lg)
+                        modifier = Modifier
+                            .size(BdixIconSize.lg)
+                            .graphicsLayer {
+                                scaleX = iconScale
+                                scaleY = iconScale
+                            }
                     )
                 },
                 label = {
@@ -415,6 +445,11 @@ private fun BdixNavigationRail(
         TopLevelDestination.entries.forEach { destination ->
             val selected = activeRoute == destination.route
             val label = stringResource(destination.labelRes)
+            val iconScale by animateFloatAsState(
+                targetValue = if (selected) 1.14f else 1f,
+                animationSpec = BdixMotionSpecs.bouncySpring,
+                label = "nav_rail_icon_scale_${destination.route}"
+            )
             NavigationRailItem(
                 selected = selected,
                 onClick = { onSelectDestination(destination.route) },
@@ -422,7 +457,12 @@ private fun BdixNavigationRail(
                     Icon(
                         imageVector = if (selected) destination.selectedIcon else destination.unselectedIcon,
                         contentDescription = label,
-                        modifier = Modifier.size(BdixIconSize.lg)
+                        modifier = Modifier
+                            .size(BdixIconSize.lg)
+                            .graphicsLayer {
+                                scaleX = iconScale
+                                scaleY = iconScale
+                            }
                     )
                 },
                 label = {
