@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -61,7 +61,7 @@ fun ExportMenuButton(
                 .heightIn(min = 48.dp)
                 .testTag(buttonTestTag)
         ) {
-            Icon(imageVector = Icons.Default.Download, contentDescription = null)
+            Icon(imageVector = Icons.Rounded.Download, contentDescription = null)
             Text(
                 text = stringResource(R.string.action_export),
                 modifier = Modifier.padding(start = 6.dp)

@@ -96,7 +96,8 @@ data class ScanProgressState(
     val unsupportedCount: Int = 0,
     val cancelledCount: Int = 0,
     val elapsedMs: Long = 0L,
-    val lastScanCompletedAtEpochMs: Long? = null
+    val lastScanCompletedAtEpochMs: Long? = null,
+    val currentServerName: String? = null
 ) {
     val remainingCount: Int
         get() = (totalCount - completedCount).coerceAtLeast(0)

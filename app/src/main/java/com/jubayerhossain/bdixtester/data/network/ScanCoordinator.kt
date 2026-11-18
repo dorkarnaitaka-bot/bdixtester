@@ -225,7 +225,8 @@ class ScanCoordinator(
                                             restrictedOrErrorCount = restricted.get(),
                                             unsupportedCount = unsupported.get(),
                                             cancelledCount = cancelled.get(),
-                                            elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos)
+                                            elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos),
+                                            currentServerName = primaryEndpoint.name
                                         )
                                     )
                                 }

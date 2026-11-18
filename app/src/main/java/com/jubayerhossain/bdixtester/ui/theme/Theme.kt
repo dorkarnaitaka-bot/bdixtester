@@ -10,6 +10,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import com.jubayerhossain.bdixtester.core.model.ThemePreference
 
@@ -21,18 +22,28 @@ private val LightColorScheme = lightColorScheme(
     secondary = TealSecondaryLight,
     onSecondary = Color.White,
     secondaryContainer = TealSecondaryContainerLight,
-    onSecondaryContainer = Color(0xFF042F2E),
+    onSecondaryContainer = NavyDeep,
     tertiary = SlateTertiaryLight,
     onTertiary = Color.White,
     tertiaryContainer = SlateTertiaryContainerLight,
     onTertiaryContainer = LightOnSurface,
+    error = ErrorLight,
+    onError = Color.White,
+    errorContainer = ErrorContainerLight,
+    onErrorContainer = OnErrorContainerLight,
     background = LightBackground,
     onBackground = LightOnSurface,
     surface = LightSurface,
     onSurface = LightOnSurface,
     surfaceVariant = LightSurfaceVariant,
     onSurfaceVariant = LightOnSurfaceVariant,
-    outline = LightOutline
+    surfaceContainerLowest = LightSurfaceContainerLowest,
+    surfaceContainerLow = LightSurfaceContainerLow,
+    surfaceContainer = LightSurfaceContainer,
+    surfaceContainerHigh = LightSurfaceContainerHigh,
+    surfaceContainerHighest = LightSurfaceContainerHighest,
+    outline = LightOutline,
+    outlineVariant = LightOutlineVariant
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -41,20 +52,30 @@ private val DarkColorScheme = darkColorScheme(
     primaryContainer = CyanPrimaryContainerDark,
     onPrimaryContainer = CyanPrimaryContainerLight,
     secondary = TealSecondaryDark,
-    onSecondary = Color(0xFF042F2E),
+    onSecondary = NavyDeep,
     secondaryContainer = TealSecondaryContainerDark,
-    onSecondaryContainer = TealSecondaryContainerLight,
+    onSecondaryContainer = CyanPrimaryContainerLight,
     tertiary = SlateTertiaryDark,
     onTertiary = NavyDeep,
     tertiaryContainer = SlateTertiaryContainerDark,
     onTertiaryContainer = DarkOnSurface,
+    error = ErrorDark,
+    onError = Color(0xFF3F0B0B),
+    errorContainer = ErrorContainerDark,
+    onErrorContainer = OnErrorContainerDark,
     background = DarkBackground,
     onBackground = DarkOnSurface,
     surface = DarkSurface,
     onSurface = DarkOnSurface,
     surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = DarkOnSurfaceVariant,
-    outline = DarkOutline
+    surfaceContainerLowest = DarkSurfaceContainerLowest,
+    surfaceContainerLow = DarkSurfaceContainerLow,
+    surfaceContainer = DarkSurfaceContainer,
+    surfaceContainerHigh = DarkSurfaceContainerHigh,
+    surfaceContainerHighest = DarkSurfaceContainerHighest,
+    outline = DarkOutline,
+    outlineVariant = DarkOutlineVariant
 )
 
 @Composable
@@ -79,11 +100,17 @@ fun BdixTesterTheme(
     }
 
     val semanticColors = if (useDarkTheme) DarkSemanticColors else LightSemanticColors
+    val currentLocale = LocalConfiguration.current.locales.get(0)
+    val activeTypography = if (currentLocale?.language == "bn") {
+        BdixTypographyBengali
+    } else {
+        BdixTypography
+    }
 
     CompositionLocalProvider(LocalBdixSemanticColors provides semanticColors) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = BdixTypography,
+            typography = activeTypography,
             shapes = BdixShapes,
             content = content
         )

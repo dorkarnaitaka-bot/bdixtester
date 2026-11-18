@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.jubayerhossain.bdixtester.core.di.AppContainer
 import com.jubayerhossain.bdixtester.core.model.AppLanguage
+import com.jubayerhossain.bdixtester.core.model.ScanMode
 import com.jubayerhossain.bdixtester.core.model.ThemePreference
 import com.jubayerhossain.bdixtester.core.network.NetworkSnapshot
 import com.jubayerhossain.bdixtester.data.preferences.AppSettings
@@ -63,6 +64,10 @@ class SettingsViewModel(
 
     fun selectLanguage(language: AppLanguage) {
         viewModelScope.launch { settingsRepo.setAppLanguage(language) }
+    }
+
+    fun selectDefaultScanMode(mode: ScanMode) {
+        viewModelScope.launch { settingsRepo.setDefaultScanMode(mode) }
     }
 
     fun setMaxConcurrency(concurrency: Int) {

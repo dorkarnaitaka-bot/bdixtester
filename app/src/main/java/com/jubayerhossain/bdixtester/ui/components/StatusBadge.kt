@@ -5,14 +5,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.HourglassTop
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.TimerOff
+import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.HourglassTop
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
+import androidx.compose.material.icons.rounded.TimerOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -28,6 +28,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.jubayerhossain.bdixtester.core.model.TestStatus
+import com.jubayerhossain.bdixtester.ui.theme.BdixIconSize
 import com.jubayerhossain.bdixtester.ui.theme.BdixTesterTheme
 import com.jubayerhossain.bdixtester.ui.theme.LocalBdixSemanticColors
 
@@ -39,47 +40,47 @@ fun StatusBadge(
     val semantic = LocalBdixSemanticColors.current
     val (icon: ImageVector, tint: Color, container: Color) = when (status) {
         TestStatus.NOT_TESTED -> Triple(
-            Icons.Default.RadioButtonUnchecked,
+            Icons.Rounded.RadioButtonUnchecked,
             semantic.neutral,
             semantic.neutralContainer
         )
         TestStatus.QUEUED -> Triple(
-            Icons.Default.HourglassTop,
+            Icons.Rounded.HourglassTop,
             semantic.neutral,
             semantic.neutralContainer
         )
         TestStatus.TESTING -> Triple(
-            Icons.Default.HourglassTop,
+            Icons.Rounded.HourglassTop,
             MaterialTheme.colorScheme.primary,
             MaterialTheme.colorScheme.primaryContainer
         )
         TestStatus.REACHABLE -> Triple(
-            Icons.Default.CheckCircle,
+            Icons.Rounded.CheckCircle,
             semantic.reachable,
             semantic.reachableContainer
         )
         TestStatus.RESTRICTED -> Triple(
-            Icons.Default.Lock,
+            Icons.Rounded.Lock,
             semantic.restricted,
             semantic.restrictedContainer
         )
         TestStatus.UNREACHABLE -> Triple(
-            Icons.Default.ErrorOutline,
+            Icons.Rounded.ErrorOutline,
             semantic.unreachable,
             semantic.unreachableContainer
         )
         TestStatus.TIMED_OUT -> Triple(
-            Icons.Default.TimerOff,
+            Icons.Rounded.TimerOff,
             semantic.restricted,
             semantic.restrictedContainer
         )
         TestStatus.UNSUPPORTED -> Triple(
-            Icons.Default.Block,
+            Icons.Rounded.Block,
             semantic.neutral,
             semantic.neutralContainer
         )
         TestStatus.CANCELLED -> Triple(
-            Icons.Default.Cancel,
+            Icons.Rounded.Cancel,
             semantic.neutral,
             semantic.neutralContainer
         )
@@ -101,7 +102,7 @@ fun StatusBadge(
                 imageVector = icon,
                 contentDescription = null,
                 tint = tint,
-                modifier = Modifier.size(14.dp)
+                modifier = Modifier.size(BdixIconSize.xs)
             )
             Text(
                 text = status.displayLabel,

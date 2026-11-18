@@ -6,6 +6,7 @@
     <string name="nav_servers">Servers</string>
     <string name="nav_scan">Scan</string>
     <string name="nav_favorites">Saved</string>
+    <string name="nav_history">History</string>
     <string name="nav_settings">Settings</string>
 
     <!-- Common actions & labels -->
@@ -144,4 +145,115 @@
     <string name="settings_developer_label">Developer</string>
     <string name="settings_developer_value">Jubayer Hossain (JubayerHossain)</string>
     <string name="settings_privacy_summary">Local-first design. No account, no analytics, no location or Wi-Fi SSID collection, and no advertising SDKs. Manual network labels and custom servers stay on-device.</string>
+    <string name="settings_version_label">Version</string>
+    <string name="settings_confirm_clear_favorites">Remove all saved favorite and pinned endpoints?</string>
+    <string name="settings_confirm_clear_custom">Delete all user-created custom endpoints?</string>
+    <string name="settings_confirm_reset_all">Clear history, favorites, custom servers, remote catalog cache, and reset settings to defaults? Built-in catalog entries remain intact.</string>
+
+    <!-- Main Tester Home & Reference Flow -->
+    <string name="home_open_drawer">Open navigation menu</string>
+    <string name="home_working_servers_found">Working servers Found</string>
+    <string name="home_working_servers_count_live">%1$d Working servers Found</string>
+    <string name="home_action_view">VIEW</string>
+    <string name="home_action_start_test">Start Test</string>
+    <string name="home_action_stop">Stop</string>
+    <string name="home_starting_title">Starting</string>
+    <string name="home_checking_internet">Checking internet</string>
+    <string name="home_testing_wait">Testing. Please wait</string>
+    <string name="home_currently_testing">Currently Testing: %1$s</string>
+
+    <!-- Wi-Fi Warning Dialog -->
+    <string name="wifi_warning_title">Network Error</string>
+    <string name="wifi_warning_body">Looks like your Wifi is turned off. Normally your Mobile network is not connected to BDIX.</string>
+    <string name="wifi_warning_settings">WIFI SETTINGS</string>
+    <string name="wifi_warning_continue">CONTINUE ANYWAY</string>
+
+    <!-- Navigation Drawer -->
+    <string name="drawer_ip_label">IP Address: %1$s</string>
+    <string name="drawer_ip_unavailable">Unavailable</string>
+    <string name="drawer_show_server_list">Show Server List</string>
+    <string name="drawer_saved_history">Saved &amp; History</string>
+    <string name="drawer_privacy_policy">Privacy Policy</string>
+    <string name="drawer_update_server_list">Update Server List</string>
+    <string name="drawer_add_server_request">New Server Add Request</string>
+    <string name="drawer_settings">Settings</string>
+    <string name="drawer_version">Version: %1$s</string>
+    <string name="drawer_build">Build: %1$d</string>
+    <string name="drawer_update_triggered">Catalog sync started.</string>
+    <string name="drawer_update_configure_hint">Configure a signed remote catalog URL in Settings to sync updates.</string>
+    <string name="privacy_dialog_close">Close</string>
+
+    <!-- Server List Reference Tabs -->
+    <string name="servers_tab_working">Working</string>
+    <string name="servers_tab_not_tested">Not Tested</string>
+    <string name="servers_tab_not_working">Not Working</string>
+    <string name="servers_bottom_all">All</string>
+    <string name="servers_bottom_tv">TV</string>
+    <string name="servers_bottom_ftp">FTP</string>
+    <string name="servers_bottom_movie">Movie</string>
+    <string name="servers_bottom_search">Search</string>
+    <string name="servers_empty_working_desc">No working servers found yet. Tap Start Test below to scan your BDIX network.</string>
+    <string name="servers_empty_not_working_desc">No failing servers in this category yet.</string>
+
+    <!-- Revision 1–3 UI/UX, Browser & Navigation strings -->
+    <string name="home_quick_scan_hint">Fast 2.5s reachability probe</string>
+    <string name="home_full_scan_hint">Complete latency, TLS &amp; HTTP verification</string>
+    <string name="home_network_wifi">Wi-Fi</string>
+    <string name="home_network_mobile">Mobile Data</string>
+    <string name="home_network_ethernet">Ethernet</string>
+    <string name="home_network_offline">Offline</string>
+    <string name="home_summary_working">Working</string>
+    <string name="home_summary_failed">Failed</string>
+    <string name="home_summary_avg_ping">Avg Ping</string>
+    <string name="home_summary_not_tested_yet">Ready to scan %1$d BDIX endpoints</string>
+    <string name="home_ring_a11y_idle">%1$d of %2$d working servers found</string>
+    <string name="home_ring_a11y_scanning">Scanning %1$s percent complete, %2$d working servers found</string>
+    <string name="servers_title">Servers</string>
+    <string name="servers_open_url_a11y">Open %1$s in external browser</string>
+    <string name="servers_open_details_a11y">View diagnostics for %1$s</string>
+    <string name="servers_sync_catalog_a11y">Sync remote server catalog</string>
+    <string name="servers_latency_chip">%1$d ms</string>
+    <string name="details_open_browser_failed">Unable to launch external browser for this URL.</string>
+    <string name="saved_title">Saved Servers</string>
+    <string name="history_title">Testing History</string>
+
+    <!-- Bangladesh OTT Directory -->
+    <string name="servers_bottom_ott">OTT</string>
+    <string name="ott_filter_all">All (%1$d)</string>
+    <string name="ott_filter_bd">Bangladesh (%1$d)</string>
+    <string name="ott_filter_global">Global in BD (%1$d)</string>
+    <string name="ott_badge_bd">Bangladesh</string>
+    <string name="ott_badge_global">Global in BD</string>
+    <string name="ott_empty_title">No OTT platforms found</string>
+    <string name="ott_empty_desc">No OTT platforms match your search or region filter.</string>
+
+    <!-- Modern Material 3 Settings Rows & Dialogs -->
+    <string name="settings_theme_title">App Theme</string>
+    <string name="settings_theme_dialog_title">Choose App Theme</string>
+    <string name="settings_language_dialog_title">Choose App Language</string>
+    <string name="settings_scan_mode_title">Default Scan Mode</string>
+    <string name="settings_scan_mode_dialog_title">Choose Default Scan Mode</string>
+    <string name="settings_scan_mode_quick_desc">Fast 2.5s reachability probe</string>
+    <string name="settings_scan_mode_full_desc">Complete latency, TLS &amp; HTTP check</string>
+    <string name="settings_concurrency_title">Max Concurrent Probes</string>
+    <string name="settings_concurrency_badge">%1$d max</string>
+    <string name="settings_speed_cap_title">Opt-In Speed-Test Cap</string>
+    <string name="settings_speed_cap_dialog_title">Choose Speed-Test Cap</string>
+    <string name="settings_speed_cap_value">%1$d MiB</string>
+    <string name="settings_network_profile_title">Network Profile Label</string>
+    <string name="settings_network_profile_unset">Not set (optional)</string>
+    <string name="settings_network_profile_dialog_hint">e.g., Home ISP or Office Fiber</string>
+    <string name="settings_remote_url_title">Remote Catalog URL</string>
+    <string name="settings_remote_url_unset">Not configured</string>
+    <string name="settings_remote_url_dialog_hint">https://example.com/catalog-manifest.json</string>
+    <string name="settings_auto_sync_subtitle">Periodically check signed remote catalog</string>
+    <string name="settings_wifi_only_subtitle">Prevent catalog downloads on mobile data</string>
+    <string name="settings_cross_origin_subtitle">Permit payload hosted on a different domain</string>
+    <string name="settings_retention_title">History Retention Window</string>
+    <string name="settings_retention_dialog_title">Choose Retention Window</string>
+    <string name="settings_retention_days_value">%1$d days</string>
+    <string name="settings_clear_history_subtitle">Remove all saved scan logs from this device</string>
+    <string name="settings_clear_favorites_subtitle">Unbookmark and unpin all saved servers</string>
+    <string name="settings_clear_custom_subtitle">Remove all user-added custom endpoints</string>
+    <string name="settings_reset_all_subtitle">Reset preferences and clear local user data</string>
 </resources>

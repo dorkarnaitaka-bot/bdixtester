@@ -8,6 +8,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import java.net.Inet4Address
+import java.net.NetworkInterface
 
 enum class TransportType(val displayLabel: String) {
     WIFI("Wi-Fi"),
@@ -22,7 +24,8 @@ data class NetworkSnapshot(
     val isConnected: Boolean = false,
     val transportType: TransportType = TransportType.NONE,
     val hasWifiTransport: Boolean = false,
-    val hasVpnTransport: Boolean = false
+    val hasVpnTransport: Boolean = false,
+    val localIpAddress: String? = null
 ) {
     /**
      * Strict Wi-Fi verification for catalog synchronization:
@@ -116,7 +119,7 @@ class AndroidConnectivityObserver(
                 network: Network,
                 networkCapabilities: NetworkCapabilities
             ) {
-                trySend(snapshotFromCapabilities(networkCapabilities))
+                trySend(snapshotFromCapabilities(networkCapabilities, resolveLocalIpv4(cm, network)))
             }
         }
 
@@ -140,13 +143,16 @@ class AndroidConnectivityObserver(
         return try {
             val activeNetwork = cm.activeNetwork ?: return NetworkSnapshot()
             val caps = cm.getNetworkCapabilities(activeNetwork) ?: return NetworkSnapshot()
-            snapshotFromCapabilities(caps)
+            snapshotFromCapabilities(caps, resolveLocalIpv4(cm, activeNetwork))
         } catch (_: SecurityException) {
             NetworkSnapshot()
         }
     }
 
-    internal fun snapshotFromCapabilities(caps: NetworkCapabilities): NetworkSnapshot {
+    internal fun snapshotFromCapabilities(
+        caps: NetworkCapabilities,
+        localIpAddress: String? = null
+    ): NetworkSnapshot {
         val hasInternet = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
         if (!hasInternet) {
             return NetworkSnapshot()
@@ -165,7 +171,41 @@ class AndroidConnectivityObserver(
             isConnected = true,
             transportType = transport,
             hasWifiTransport = hasWifi,
-            hasVpnTransport = hasVpn
+            hasVpnTransport = hasVpn,
+            localIpAddress = localIpAddress
         )
+    }
+
+    private fun resolveLocalIpv4(cm: ConnectivityManager, network: Network?): String? {
+        try {
+            if (network != null) {
+                val linkProps = cm.getLinkProperties(network)
+                val linkIp = linkProps?.linkAddresses
+                    ?.mapNotNull { it.address as? Inet4Address }
+                    ?.firstOrNull { !it.isLoopbackAddress && !it.isLinkLocalAddress }
+                    ?.hostAddress
+                if (!linkIp.isNullOrBlank()) return linkIp
+            }
+        } catch (_: Exception) {
+            // Fall through to NetworkInterface enumeration
+        }
+        return try {
+            val interfaces = NetworkInterface.getNetworkInterfaces() ?: return null
+            while (interfaces.hasMoreElements()) {
+                val iface = interfaces.nextElement()
+                if (!iface.isUp || iface.isLoopback) continue
+                val addresses = iface.inetAddresses
+                while (addresses.hasMoreElements()) {
+                    val addr = addresses.nextElement()
+                    if (addr is Inet4Address && !addr.isLoopbackAddress && !addr.isLinkLocalAddress) {
+                        val hostAddr = addr.hostAddress
+                        if (!hostAddr.isNullOrBlank()) return hostAddr
+                    }
+                }
+            }
+            null
+        } catch (_: Exception) {
+            null
+        }
     }
 }

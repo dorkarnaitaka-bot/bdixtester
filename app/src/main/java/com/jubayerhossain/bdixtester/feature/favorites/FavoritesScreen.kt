@@ -1,52 +1,61 @@
 package com.jubayerhossain.bdixtester.feature.favorites
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.PushPin
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.BookmarkBorder
+import androidx.compose.material.icons.rounded.Clear
+import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -55,13 +64,14 @@ import com.jubayerhossain.bdixtester.core.export.ExportDataset
 import com.jubayerhossain.bdixtester.core.export.ExportFormat
 import com.jubayerhossain.bdixtester.core.model.ServerProtocol
 import com.jubayerhossain.bdixtester.core.model.TestStatus
-import com.jubayerhossain.bdixtester.core.util.ExternalBrowserHelper
 import com.jubayerhossain.bdixtester.domain.model.ServerTestResult
 import com.jubayerhossain.bdixtester.ui.components.EmptyStateView
 import com.jubayerhossain.bdixtester.ui.components.ExportMenuButton
 import com.jubayerhossain.bdixtester.ui.components.LtrContent
 import com.jubayerhossain.bdixtester.ui.components.ServerCard
 import com.jubayerhossain.bdixtester.ui.components.StatusBadge
+import com.jubayerhossain.bdixtester.ui.theme.BdixBorder
+import com.jubayerhossain.bdixtester.ui.theme.BdixIconSize
 import com.jubayerhossain.bdixtester.ui.theme.BdixSpacing
 import com.jubayerhossain.bdixtester.ui.theme.BdixTesterTheme
 import com.jubayerhossain.bdixtester.ui.theme.MonoUrlStyle
@@ -69,107 +79,175 @@ import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FavoritesScreen(
+fun SavedServersScreen(
+    uiState: FavoritesUiState,
+    onSearchQueryChange: (String) -> Unit,
+    onToggleFavorite: (String) -> Unit,
+    onSetPinned: (String, Boolean) -> Unit,
+    onOpenUrl: (String) -> Unit,
+    onExportFavorites: (ExportFormat) -> String,
+    modifier: Modifier = Modifier
+) {
+    Scaffold(
+        modifier = modifier
+            .fillMaxSize()
+            .testTag("favorites_screen"),
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets.statusBars,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(R.string.saved_title),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
+                actions = {
+                    ExportMenuButton(
+                        dataset = ExportDataset.FAVORITES,
+                        onGeneratePayload = onExportFavorites,
+                        buttonTestTag = "saved_export_button"
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                )
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            SearchFieldRow(
+                query = uiState.searchQuery,
+                onQueryChange = onSearchQueryChange,
+                testTag = "saved_search_input"
+            )
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 720.dp),
+                contentPadding = PaddingValues(
+                    start = BdixSpacing.lg,
+                    end = BdixSpacing.lg,
+                    bottom = BdixSpacing.xl
+                ),
+                verticalArrangement = Arrangement.spacedBy(BdixSpacing.md)
+            ) {
+                if (uiState.favoriteItems.isEmpty()) {
+                    item {
+                        EmptyStateView(
+                            icon = Icons.Rounded.BookmarkBorder,
+                            title = stringResource(R.string.favorites_empty_title),
+                            description = stringResource(R.string.favorites_empty_desc),
+                            tag = "favorites_empty_state"
+                        )
+                    }
+                } else {
+                    items(
+                        items = uiState.favoriteItems,
+                        key = { it.endpoint.id }
+                    ) { item ->
+                        ServerCard(
+                            endpoint = item.endpoint,
+                            result = item.latestResult,
+                            isFavorite = true,
+                            isPinned = item.favorite.isPinned,
+                            onToggleFavorite = { onToggleFavorite(item.endpoint.id) },
+                            onTogglePin = { onSetPinned(item.endpoint.id, !item.favorite.isPinned) },
+                            onVisitWebsiteClick = { onOpenUrl(item.endpoint.originalUrl) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HistoryScreen(
     uiState: FavoritesUiState,
     onSearchQueryChange: (String) -> Unit,
     onSelectStatusFilter: (TestStatus?) -> Unit,
     onSelectProtocolFilter: (ServerProtocol?) -> Unit,
-    onToggleFavorite: (String) -> Unit,
-    onSetPinned: (String, Boolean) -> Unit,
-    onOpenServerDetails: (String) -> Unit,
+    onOpenUrl: (String) -> Unit,
     onDeleteHistoryEntry: (Long) -> Unit,
     onClearAllHistory: () -> Unit,
-    onExportFavorites: (ExportFormat) -> String,
     onExportHistory: (ExportFormat) -> String,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showClearHistoryDialog by remember { mutableStateOf(false) }
 
-    Column(
+    Scaffold(
         modifier = modifier
             .fillMaxSize()
-            .testTag("favorites_screen"),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+            .testTag("history_screen"),
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets.statusBars,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(R.string.history_title),
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
+                actions = {
+                    ExportMenuButton(
+                        dataset = ExportDataset.HISTORY,
+                        onGeneratePayload = onExportHistory,
+                        buttonTestTag = "history_export_button"
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
+                )
+            )
+        }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .widthIn(max = 720.dp)
-                .padding(horizontal = BdixSpacing.lg, vertical = BdixSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(BdixSpacing.sm)
+                .fillMaxSize()
+                .padding(innerPadding),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            SearchFieldRow(
+                query = uiState.searchQuery,
+                onQueryChange = onSearchQueryChange,
+                testTag = "history_search_input"
+            )
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 720.dp)
+                    .padding(start = BdixSpacing.lg, end = BdixSpacing.lg, bottom = BdixSpacing.sm),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = stringResource(R.string.nav_favorites),
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    ExportMenuButton(
-                        dataset = if (selectedTab == 0) ExportDataset.FAVORITES else ExportDataset.HISTORY,
-                        onGeneratePayload = { format ->
-                            if (selectedTab == 0) onExportFavorites(format) else onExportHistory(format)
-                        },
-                        buttonTestTag = "saved_export_button"
-                    )
-                    if (selectedTab == 1 && uiState.historyItems.isNotEmpty()) {
-                        OutlinedButton(
-                            onClick = { showClearHistoryDialog = true },
-                            modifier = Modifier
-                                .heightIn(min = 48.dp)
-                                .testTag("history_clear_all_button")
-                        ) {
-                            Text(stringResource(R.string.history_clear_all))
-                        }
-                    }
-                }
-            }
-
-            TabRow(selectedTabIndex = selectedTab) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    text = { Text("${stringResource(R.string.favorites_tab_favorites)} (${uiState.favoriteItems.size})") },
-                    modifier = Modifier.testTag("tab_favorites")
-                )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    text = { Text("${stringResource(R.string.favorites_tab_history)} (${uiState.historyItems.size})") },
-                    modifier = Modifier.testTag("tab_history")
-                )
-            }
-
-            OutlinedTextField(
-                value = uiState.searchQuery,
-                onValueChange = onSearchQueryChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("saved_search_input"),
-                placeholder = { Text(stringResource(R.string.servers_search_placeholder)) },
-                leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (uiState.searchQuery.isNotEmpty()) {
-                        IconButton(
-                            onClick = { onSearchQueryChange("") },
-                            modifier = Modifier.minimumInteractiveComponentSize()
-                        ) {
-                            Icon(imageVector = Icons.Default.Clear, contentDescription = stringResource(R.string.action_clear_filters))
-                        }
-                    }
-                },
-                singleLine = true
-            )
-
-            if (selectedTab == 1) {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(BdixSpacing.sm)) {
-                    items(listOf(TestStatus.REACHABLE, TestStatus.RESTRICTED, TestStatus.UNREACHABLE, TestStatus.TIMED_OUT)) { st ->
+                LazyRow(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(BdixSpacing.sm)
+                ) {
+                    items(
+                        listOf(
+                            TestStatus.REACHABLE,
+                            TestStatus.RESTRICTED,
+                            TestStatus.UNREACHABLE,
+                            TestStatus.TIMED_OUT
+                        )
+                    ) { st ->
                         FilterChip(
                             selected = uiState.historyStatusFilter == st,
                             onClick = { onSelectStatusFilter(if (uiState.historyStatusFilter == st) null else st) },
@@ -186,73 +264,34 @@ fun FavoritesScreen(
                         )
                     }
                 }
-            }
-        }
-
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .widthIn(max = 720.dp),
-            contentPadding = PaddingValues(start = BdixSpacing.lg, end = BdixSpacing.lg, bottom = BdixSpacing.xl),
-            verticalArrangement = Arrangement.spacedBy(BdixSpacing.md)
-        ) {
-            if (selectedTab == 0) {
-                if (uiState.favoriteItems.isEmpty()) {
-                    item {
-                        EmptyStateView(
-                            icon = Icons.Default.BookmarkBorder,
-                            title = stringResource(R.string.favorites_empty_title),
-                            description = stringResource(R.string.favorites_empty_desc),
-                            tag = "favorites_empty_state"
-                        )
-                    }
-                } else {
-                    items(
-                        items = uiState.favoriteItems,
-                        key = { it.endpoint.id }
-                    ) { item ->
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            ServerCard(
-                                endpoint = item.endpoint,
-                                result = item.latestResult,
-                                isFavorite = true,
-                                isPinned = item.favorite.isPinned,
-                                onToggleFavorite = { onToggleFavorite(item.endpoint.id) },
-                                onCardClick = { onOpenServerDetails(item.endpoint.id) },
-                                onVisitWebsiteClick = {
-                                    ExternalBrowserHelper.openUrl(context, item.endpoint.originalUrl)
-                                }
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                TextButton(
-                                    onClick = { onSetPinned(item.endpoint.id, !item.favorite.isPinned) },
-                                    modifier = Modifier
-                                        .heightIn(min = 48.dp)
-                                        .testTag("pin_toggle_${item.endpoint.id}")
-                                ) {
-                                    Icon(
-                                        imageVector = if (item.favorite.isPinned) Icons.Filled.PushPin else Icons.Outlined.PushPin,
-                                        contentDescription = null
-                                    )
-                                    Text(
-                                        text = stringResource(
-                                            if (item.favorite.isPinned) R.string.action_unpin else R.string.action_pin
-                                        ),
-                                        modifier = Modifier.padding(start = 4.dp)
-                                    )
-                                }
-                            }
-                        }
+                if (uiState.historyItems.isNotEmpty()) {
+                    OutlinedButton(
+                        onClick = { showClearHistoryDialog = true },
+                        modifier = Modifier
+                            .padding(start = BdixSpacing.sm)
+                            .heightIn(min = 48.dp)
+                            .testTag("history_clear_all_button")
+                    ) {
+                        Text(stringResource(R.string.history_clear_all))
                     }
                 }
-            } else {
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .widthIn(max = 720.dp),
+                contentPadding = PaddingValues(
+                    start = BdixSpacing.lg,
+                    end = BdixSpacing.lg,
+                    bottom = BdixSpacing.xl
+                ),
+                verticalArrangement = Arrangement.spacedBy(BdixSpacing.md)
+            ) {
                 if (uiState.historyItems.isEmpty()) {
                     item {
                         EmptyStateView(
-                            icon = Icons.Default.History,
+                            icon = Icons.Rounded.History,
                             title = stringResource(R.string.history_empty_title),
                             description = stringResource(R.string.history_empty_desc),
                             tag = "history_empty_state"
@@ -265,7 +304,7 @@ fun FavoritesScreen(
                     ) { entry ->
                         HistoryRowCard(
                             entry = entry,
-                            onOpenDetails = { onOpenServerDetails(entry.serverId) },
+                            onOpenUrl = { onOpenUrl(entry.urlSnapshot) },
                             onDelete = { onDeleteHistoryEntry(entry.historyId) }
                         )
                     }
@@ -277,6 +316,7 @@ fun FavoritesScreen(
     if (showClearHistoryDialog) {
         AlertDialog(
             onDismissRequest = { showClearHistoryDialog = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = { Text(stringResource(R.string.history_clear_confirm_title)) },
             text = { Text(stringResource(R.string.history_clear_confirm_body)) },
             confirmButton = {
@@ -285,6 +325,10 @@ fun FavoritesScreen(
                         onClearAllHistory()
                         showClearHistoryDialog = false
                     },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    ),
                     modifier = Modifier.heightIn(min = 48.dp)
                 ) {
                     Text(stringResource(R.string.action_delete))
@@ -303,84 +347,172 @@ fun FavoritesScreen(
 }
 
 @Composable
+private fun SearchFieldRow(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    testTag: String
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 720.dp)
+            .padding(horizontal = BdixSpacing.lg, vertical = BdixSpacing.md)
+            .testTag(testTag),
+        placeholder = { Text(stringResource(R.string.servers_search_placeholder)) },
+        leadingIcon = { Icon(imageVector = Icons.Rounded.Search, contentDescription = null) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(
+                    onClick = { onQueryChange("") },
+                    modifier = Modifier.minimumInteractiveComponentSize()
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Clear,
+                        contentDescription = stringResource(R.string.action_clear_filters)
+                    )
+                }
+            }
+        },
+        singleLine = true,
+        shape = MaterialTheme.shapes.medium
+    )
+}
+
+@Composable
 private fun HistoryRowCard(
     entry: ServerTestResult,
-    onOpenDetails: () -> Unit,
+    onOpenUrl: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
+    val displayName = entry.serverNameSnapshot.ifBlank { entry.serverId }
+    val urlA11y = stringResource(R.string.servers_open_url_a11y, displayName)
+
     Surface(
-        onClick = onOpenDetails,
         modifier = Modifier
             .fillMaxWidth()
             .testTag("history_item_${entry.historyId}"),
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f))
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(BdixBorder.hairline, MaterialTheme.colorScheme.outlineVariant)
     ) {
-        Column(
-            modifier = Modifier.padding(BdixSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = entry.serverNameSnapshot.ifBlank { entry.serverId },
-                        style = MaterialTheme.typography.titleSmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Tapping anywhere on the card launches the URL directly in external browser
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        enabled = entry.urlSnapshot.isNotBlank(),
+                        role = Role.Button,
+                        onClickLabel = urlA11y,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onOpenUrl()
+                        }
                     )
-                    LtrContent {
-                        Text(
-                            text = entry.urlSnapshot,
-                            style = MonoUrlStyle,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                    .padding(BdixSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = displayName,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .testTag("history_delete_${entry.historyId}")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.DeleteOutline,
+                            contentDescription = stringResource(R.string.action_delete)
                         )
                     }
                 }
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier
-                        .minimumInteractiveComponentSize()
-                        .testTag("history_delete_${entry.historyId}")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.DeleteOutline,
-                        contentDescription = stringResource(R.string.action_delete)
-                    )
+                    StatusBadge(status = entry.status)
+                    LtrContent {
+                        Text(
+                            text = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.US)
+                                .format(Date(entry.testedAtEpochMs)),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                StatusBadge(status = entry.status)
                 LtrContent {
                     Text(
-                        text = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.US)
-                            .format(Date(entry.testedAtEpochMs)),
-                        style = MaterialTheme.typography.labelSmall,
+                        text = buildString {
+                            append("${entry.scanMode.displayLabel} · ${entry.protocol.displayLabel}")
+                            entry.primaryLatencyMs?.let { append(" · ${it} ms") }
+                            entry.downloadMbps?.let { append(" · ${"%.2f".format(Locale.US, it)} Mbps") }
+                            entry.networkProfileLabel?.let { append(" · [$it]") }
+                        },
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-            LtrContent {
-                Text(
-                    text = buildString {
-                        append("${entry.scanMode.displayLabel} · ${entry.protocol.displayLabel}")
-                        entry.primaryLatencyMs?.let { append(" · ${it} ms") }
-                        entry.downloadMbps?.let { append(" · ${"%.2f".format(Locale.US, it)} Mbps") }
-                        entry.networkProfileLabel?.let { append(" · [$it]") }
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+
+            if (entry.urlSnapshot.isNotBlank()) {
+                HorizontalDivider(
+                    thickness = BdixBorder.hairline,
+                    color = MaterialTheme.colorScheme.outlineVariant
                 )
+
+                // Isolated full-width >= 48dp external browser URL launch row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = urlA11y,
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onOpenUrl()
+                            }
+                        )
+                        .semantics { contentDescription = urlA11y }
+                        .padding(horizontal = BdixSpacing.md, vertical = BdixSpacing.sm)
+                        .testTag("history_url_link_${entry.historyId}"),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    LtrContent {
+                        Text(
+                            text = entry.urlSnapshot,
+                            style = MonoUrlStyle,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier
+                                .weight(1f, fill = false)
+                                .padding(end = BdixSpacing.sm)
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(BdixIconSize.sm)
+                    )
+                }
             }
         }
     }
@@ -388,20 +520,15 @@ private fun HistoryRowCard(
 
 @Preview(showBackground = true)
 @Composable
-private fun FavoritesScreenPreview() {
+private fun SavedServersScreenPreview() {
     BdixTesterTheme {
-        FavoritesScreen(
+        SavedServersScreen(
             uiState = FavoritesUiState(),
             onSearchQueryChange = {},
-            onSelectStatusFilter = {},
-            onSelectProtocolFilter = {},
             onToggleFavorite = {},
             onSetPinned = { _, _ -> },
-            onOpenServerDetails = {},
-            onDeleteHistoryEntry = {},
-            onClearAllHistory = {},
-            onExportFavorites = { "" },
-            onExportHistory = { "" }
+            onOpenUrl = {},
+            onExportFavorites = { "" }
         )
     }
 }

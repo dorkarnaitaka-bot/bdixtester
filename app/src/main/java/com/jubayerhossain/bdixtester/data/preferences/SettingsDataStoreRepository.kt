@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.jubayerhossain.bdixtester.core.model.AppLanguage
+import com.jubayerhossain.bdixtester.core.model.ScanMode
 import com.jubayerhossain.bdixtester.core.model.ThemePreference
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -26,6 +27,7 @@ interface SettingsRepository {
 
     suspend fun setThemePreference(preference: ThemePreference)
     suspend fun setAppLanguage(language: AppLanguage)
+    suspend fun setDefaultScanMode(scanMode: ScanMode)
     suspend fun setFullScanTimeouts(connectTimeoutMs: Int, readTimeoutMs: Int)
     suspend fun setQuickScanDeadline(deadlineMs: Int)
     suspend fun setMaxConcurrency(maxConcurrency: Int)
@@ -48,6 +50,7 @@ class SettingsDataStoreRepository(
     private object Keys {
         val THEME = stringPreferencesKey("theme_preference")
         val LANGUAGE = stringPreferencesKey("app_language")
+        val DEFAULT_SCAN_MODE = stringPreferencesKey("default_scan_mode")
         val FULL_CONNECT_MS = intPreferencesKey("full_connect_timeout_ms")
         val FULL_READ_MS = intPreferencesKey("full_read_timeout_ms")
         val QUICK_DEADLINE_MS = intPreferencesKey("quick_scan_deadline_ms")
@@ -78,9 +81,14 @@ class SettingsDataStoreRepository(
                 AppLanguage.entries.firstOrNull { it.name == name }
             } ?: AppLanguage.SYSTEM
 
+            val defaultScanMode = prefs[Keys.DEFAULT_SCAN_MODE]?.let { name ->
+                ScanMode.entries.firstOrNull { it.name == name }
+            } ?: ScanMode.QUICK_SCAN
+
             AppSettings(
                 themePreference = theme,
                 appLanguage = language,
+                defaultScanMode = defaultScanMode,
                 fullScanConnectTimeoutMs = (prefs[Keys.FULL_CONNECT_MS]
                     ?: AppSettings.DEFAULT_FULL_CONNECT_TIMEOUT_MS).coerceIn(2_000, 15_000),
                 fullScanReadTimeoutMs = (prefs[Keys.FULL_READ_MS]
@@ -109,6 +117,10 @@ class SettingsDataStoreRepository(
 
     override suspend fun setAppLanguage(language: AppLanguage) {
         dataStore.edit { it[Keys.LANGUAGE] = language.name }
+    }
+
+    override suspend fun setDefaultScanMode(scanMode: ScanMode) {
+        dataStore.edit { it[Keys.DEFAULT_SCAN_MODE] = scanMode.name }
     }
 
     override suspend fun setFullScanTimeouts(connectTimeoutMs: Int, readTimeoutMs: Int) {

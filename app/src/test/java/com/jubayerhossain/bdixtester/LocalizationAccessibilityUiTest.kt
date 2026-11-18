@@ -18,15 +18,37 @@ class LocalizationAccessibilityUiTest {
     val composeTestRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun banglaLocaleAndLargeFontRenderCoreScreensWithoutCrash() {
+    fun banglaLocaleRendersBottomNavigationOttDirectoryAndModernSettingsWithoutCrash() {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("dashboard_screen").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("dashboard_quick_scan_button").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("home_menu_button").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("home_scan_mode_selector").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("home_network_summary_card").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("home_start_test_button").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("main_bottom_navigation_bar").assertIsDisplayed()
 
+        // Verify all 5 Bangla bottom navigation items render cleanly
+        composeTestRule.onNodeWithTag("nav_home").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("nav_servers").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("nav_saved").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("nav_history").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("nav_settings").assertIsDisplayed()
+
+        // Verify Servers & OTT directory render cleanly in Bangla
+        composeTestRule.onNodeWithTag("nav_servers").performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("servers_screen").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("servers_category_ott").performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("ott_card_ott_chorki").assertIsDisplayed()
+
+        // Verify redesigned Settings grouped list & language modal dialog in Bangla
         composeTestRule.onNodeWithTag("nav_settings").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("settings_screen").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("language_option_bangla").performClick()
+        composeTestRule.onNodeWithTag("settings_language_row").performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag("language_option_bangla").assertIsDisplayed().performClick()
         composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithTag("nav_home").performClick()

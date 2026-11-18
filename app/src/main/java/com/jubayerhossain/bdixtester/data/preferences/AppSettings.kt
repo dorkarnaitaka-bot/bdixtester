@@ -1,11 +1,13 @@
 package com.jubayerhossain.bdixtester.data.preferences
 
 import com.jubayerhossain.bdixtester.core.model.AppLanguage
+import com.jubayerhossain.bdixtester.core.model.ScanMode
 import com.jubayerhossain.bdixtester.core.model.ThemePreference
 
 data class AppSettings(
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
     val appLanguage: AppLanguage = AppLanguage.SYSTEM,
+    val defaultScanMode: ScanMode = ScanMode.QUICK_SCAN,
     val fullScanConnectTimeoutMs: Int = DEFAULT_FULL_CONNECT_TIMEOUT_MS,
     val fullScanReadTimeoutMs: Int = DEFAULT_FULL_READ_TIMEOUT_MS,
     val quickScanDeadlineMs: Int = DEFAULT_QUICK_SCAN_DEADLINE_MS,

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.jubayerhossain.bdixtester.core.model.CatalogAuditSummary
 import com.jubayerhossain.bdixtester.core.model.CatalogSourceType
+import com.jubayerhossain.bdixtester.core.model.ScanMode
 import com.jubayerhossain.bdixtester.core.model.ServerCategory
 import com.jubayerhossain.bdixtester.core.model.TestStatus
 import com.jubayerhossain.bdixtester.core.network.ConnectivityObserver
@@ -27,6 +28,7 @@ import kotlinx.coroutines.launch
 data class DashboardUiState(
     val networkSnapshot: NetworkSnapshot = NetworkSnapshot(),
     val manualNetworkLabel: String = "",
+    val selectedScanMode: ScanMode = ScanMode.QUICK_SCAN,
     val totalServers: Int = 0,
     val builtInCount: Int = 0,
     val remoteCount: Int = 0,
@@ -34,6 +36,8 @@ data class DashboardUiState(
     val categoryCounts: Map<ServerCategory, Int> = emptyMap(),
     val testedCount: Int = 0,
     val reachableCount: Int = 0,
+    val failedCount: Int = 0,
+    val averageReachableLatencyMs: Long? = null,
     val unreachableCount: Int = 0,
     val restrictedOrErrorCount: Int = 0,
     val unsupportedCount: Int = 0,
@@ -43,6 +47,7 @@ data class DashboardUiState(
     val lastCatalogUpdateEpochMs: Long? = null,
     val lastScanEpochMs: Long? = null,
     val isScanning: Boolean = false,
+    val scanProgress: ScanProgressState = ScanProgressState(),
     val auditSummary: CatalogAuditSummary = CatalogAuditSummary(),
     val catalogSyncState: CatalogSyncState = CatalogSyncState(),
     val catalogIntegrity: CatalogIntegrityReport? = null
@@ -77,6 +82,7 @@ class DashboardViewModel(
         val integrity = values[6] as CatalogIntegrityReport?
         val settings = values[7] as AppSettings
         val network = values[8] as NetworkSnapshot
+        val scanMode = settings.defaultScanMode
 
         val categoryCounts = ServerCategory.entries
             .filter { it != ServerCategory.ALL }
@@ -89,27 +95,41 @@ class DashboardViewModel(
             }
             .take(6)
 
+        val reachableResults = results.values.filter { it.status == TestStatus.REACHABLE }
+        val unreachableCount = results.values.count {
+            it.status == TestStatus.UNREACHABLE || it.status == TestStatus.TIMED_OUT
+        }
+        val restrictedOrErrorCount = results.values.count { it.status == TestStatus.RESTRICTED }
+        val unsupportedCount = results.values.count { it.status == TestStatus.UNSUPPORTED }
+        val avgLatencyMs = reachableResults
+            .mapNotNull { it.primaryLatencyMs }
+            .takeIf { it.isNotEmpty() }
+            ?.average()
+            ?.toLong()
+
         DashboardUiState(
             networkSnapshot = network,
             manualNetworkLabel = settings.manualNetworkLabel,
+            selectedScanMode = scanMode,
             totalServers = endpoints.size,
             builtInCount = endpoints.count { it.sourceType == CatalogSourceType.BUILT_IN },
             remoteCount = endpoints.count { it.sourceType == CatalogSourceType.REMOTE_CATALOG },
             customCount = endpoints.count { it.sourceType == CatalogSourceType.USER_CUSTOM },
             categoryCounts = categoryCounts,
             testedCount = results.size,
-            reachableCount = results.values.count { it.status == TestStatus.REACHABLE },
-            unreachableCount = results.values.count {
-                it.status == TestStatus.UNREACHABLE || it.status == TestStatus.TIMED_OUT
-            },
-            restrictedOrErrorCount = results.values.count { it.status == TestStatus.RESTRICTED },
-            unsupportedCount = results.values.count { it.status == TestStatus.UNSUPPORTED },
+            reachableCount = reachableResults.size,
+            failedCount = unreachableCount + restrictedOrErrorCount + unsupportedCount,
+            averageReachableLatencyMs = avgLatencyMs,
+            unreachableCount = unreachableCount,
+            restrictedOrErrorCount = restrictedOrErrorCount,
+            unsupportedCount = unsupportedCount,
             featuredServers = endpoints.filter { it.isFeatured }.take(5),
             favorites = favorites,
             recentlyTested = recent,
             lastCatalogUpdateEpochMs = syncState.lastSuccessfulSyncAtEpochMs,
             lastScanEpochMs = scanProgress.lastScanCompletedAtEpochMs,
             isScanning = scanProgress.isScanning,
+            scanProgress = scanProgress,
             auditSummary = audit,
             catalogSyncState = syncState,
             catalogIntegrity = integrity
