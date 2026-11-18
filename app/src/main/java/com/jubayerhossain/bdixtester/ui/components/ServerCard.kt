@@ -51,12 +51,14 @@ import com.jubayerhossain.bdixtester.core.model.ServerCategory
 import com.jubayerhossain.bdixtester.core.model.ServerProtocol
 import com.jubayerhossain.bdixtester.core.model.TestStatus
 import com.jubayerhossain.bdixtester.core.model.VerificationState
+import com.jubayerhossain.bdixtester.core.validation.UrlParser
 import com.jubayerhossain.bdixtester.domain.model.ServerEndpoint
 import com.jubayerhossain.bdixtester.domain.model.ServerTestResult
 import com.jubayerhossain.bdixtester.ui.theme.BdixBorder
 import com.jubayerhossain.bdixtester.ui.theme.BdixIconSize
 import com.jubayerhossain.bdixtester.ui.theme.BdixSpacing
 import com.jubayerhossain.bdixtester.ui.theme.BdixTesterTheme
+import com.jubayerhossain.bdixtester.ui.theme.MonoBadgeStyle
 import com.jubayerhossain.bdixtester.ui.theme.MonoUrlStyle
 import java.util.Locale
 
@@ -199,12 +201,34 @@ fun ServerCard(
                     }
                 }
 
+                val hostOrIpLabel = UrlParser.hostAndPortLabel(endpoint.host, endpoint.explicitPort)
+                val isIpHost = UrlParser.isValidIpv4Host(endpoint.host)
+                val hostBadgeText = stringResource(
+                    if (isIpHost) R.string.server_badge_ip else R.string.server_badge_host,
+                    hostOrIpLabel
+                )
+
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     StatusBadge(status = status)
                     MetadataPill(label = endpoint.category.displayName)
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = MaterialTheme.shapes.extraSmall
+                    ) {
+                        LtrContent {
+                            Text(
+                                text = hostBadgeText,
+                                style = MonoBadgeStyle,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
                     MetadataPill(label = endpoint.protocol.displayLabel)
                     if (endpoint.sourceType != CatalogSourceType.BUILT_IN) {
                         MetadataPill(label = endpoint.sourceType.displayLabel)

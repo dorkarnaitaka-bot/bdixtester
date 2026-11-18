@@ -9,6 +9,7 @@ import com.jubayerhossain.bdixtester.core.network.ConnectivityObserver
 import com.jubayerhossain.bdixtester.core.network.NetworkSnapshot
 import com.jubayerhossain.bdixtester.core.network.StrictWifiValidator
 import com.jubayerhossain.bdixtester.core.network.TransportType
+import com.jubayerhossain.bdixtester.data.catalog.BuiltInCatalog
 import com.jubayerhossain.bdixtester.data.local.BdixDatabase
 import com.jubayerhossain.bdixtester.data.preferences.AppSettings
 import com.jubayerhossain.bdixtester.data.remote.CatalogSignatureVerifier
@@ -20,6 +21,7 @@ import com.jubayerhossain.bdixtester.data.remote.TrustedPublicKeyEntry
 import com.jubayerhossain.bdixtester.data.repository.RoomCatalogRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
@@ -46,6 +48,7 @@ import java.security.spec.ECGenParameterSpec
 class CatalogSignatureAndSyncTest {
 
     private lateinit var db: BdixDatabase
+    private var activeRepo: RoomCatalogRepository? = null
     private lateinit var keyPair: KeyPair
     private val keyId = "test-ec-key-2026"
 
@@ -62,6 +65,7 @@ class CatalogSignatureAndSyncTest {
 
     @After
     fun tearDown() {
+        runBlocking { activeRepo?.closeAndJoin() }
         db.close()
     }
 
@@ -111,7 +115,7 @@ class CatalogSignatureAndSyncTest {
 
     @Test
     fun fullSyncPipelineHandlesUpdates304AndAntiRollbackWithoutTouchingBuiltInOrCustomRows() = runTest {
-        val repo = RoomCatalogRepository(db)
+        val repo = RoomCatalogRepository(db).also { activeRepo = it }
         repo.ensureInitialized()
         repo.saveCustomServer(name = "Custom Keep", rawUrl = "http://10.0.0.5", category = com.jubayerhossain.bdixtester.core.model.ServerCategory.OTHER)
 
@@ -171,7 +175,7 @@ class CatalogSignatureAndSyncTest {
         assertEquals(SyncStatus.UPDATED, res1.status)
         assertEquals(1L, res1.catalogSequence)
         assertEquals(1, res1.entryCount)
-        assertEquals(369, db.serverDao().countBuiltInServers())
+        assertEquals(BuiltInCatalog.DEFAULT_CURATED_COUNT, db.serverDao().countBuiltInServers())
         assertEquals(1, db.serverDao().countRemoteServers())
 
         // 2. 304 preserves sequence 1

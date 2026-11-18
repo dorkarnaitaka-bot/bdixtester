@@ -11,8 +11,10 @@ import com.jubayerhossain.bdixtester.core.model.ScanMode
 import com.jubayerhossain.bdixtester.core.model.ServerCategory
 import com.jubayerhossain.bdixtester.core.model.ServerProtocol
 import com.jubayerhossain.bdixtester.core.model.TestStatus
+import com.jubayerhossain.bdixtester.core.util.ActiveResultMatcher
 import com.jubayerhossain.bdixtester.core.util.ServerDisplayCategory
 import com.jubayerhossain.bdixtester.core.util.ServerDisplayClassifier
+import com.jubayerhossain.bdixtester.core.validation.UrlParser
 import com.jubayerhossain.bdixtester.data.catalog.BdOttPlatforms
 import com.jubayerhossain.bdixtester.data.catalog.OttPlatform
 import com.jubayerhossain.bdixtester.data.catalog.OttRegion
@@ -47,11 +49,10 @@ enum class ServerStatusTab {
 }
 
 enum class ServerBottomTab {
-    ALL,
-    OTT,
-    TV,
     FTP,
-    MOVIE
+    MOVIE,
+    TV,
+    OTT
 }
 
 data class ServersUiState(
@@ -62,10 +63,14 @@ data class ServersUiState(
     val latestResults: Map<String, ServerTestResult> = emptyMap(),
     val favorites: Map<String, FavoriteInfo> = emptyMap(),
     val selectedStatusTab: ServerStatusTab = ServerStatusTab.WORKING,
-    val selectedBottomTab: ServerBottomTab = ServerBottomTab.ALL,
+    val selectedBottomTab: ServerBottomTab = ServerBottomTab.FTP,
     val workingCount: Int = 0,
     val notTestedCount: Int = 0,
     val notWorkingCount: Int = 0,
+    val ftpCount: Int = 0,
+    val movieCount: Int = 0,
+    val tvCount: Int = 0,
+    val ottCount: Int = BdOttPlatforms.all.size,
     val selectedCategory: ServerCategory = ServerCategory.ALL,
     val selectedProtocol: ServerProtocol? = null,
     val selectedStatus: TestStatus? = null,
@@ -85,7 +90,7 @@ class ServersViewModel(
 ) : ViewModel() {
 
     private val _selectedStatusTab = MutableStateFlow(ServerStatusTab.WORKING)
-    private val _selectedBottomTab = MutableStateFlow(ServerBottomTab.ALL)
+    private val _selectedBottomTab = MutableStateFlow(ServerBottomTab.FTP)
     private val _selectedOttRegion = MutableStateFlow(OttRegionFilter.ALL)
     private val _selectedCategory = MutableStateFlow(initialCategory)
     private val _selectedProtocol = MutableStateFlow<ServerProtocol?>(null)
@@ -124,28 +129,39 @@ class ServersViewModel(
         @Suppress("UNCHECKED_CAST")
         val testingIds = values[9] as Set<String>
 
-        val workingCount = allEndpoints.count { statusTabFor(results[it.id]?.status) == ServerStatusTab.WORKING }
-        val notTestedCount = allEndpoints.count { statusTabFor(results[it.id]?.status) == ServerStatusTab.NOT_TESTED }
-        val notWorkingCount = allEndpoints.count { statusTabFor(results[it.id]?.status) == ServerStatusTab.NOT_WORKING }
+        val activeResults = ActiveResultMatcher.matchActive(allEndpoints, results)
+        val ftpEndpoints = allEndpoints.filter {
+            ServerDisplayClassifier.classify(it) == ServerDisplayCategory.FTP
+        }
+        val movieEndpoints = allEndpoints.filter {
+            ServerDisplayClassifier.classify(it) == ServerDisplayCategory.MOVIE
+        }
+        val tvEndpoints = allEndpoints.filter {
+            ServerDisplayClassifier.classify(it) == ServerDisplayCategory.TV
+        }
+
+        val categoryEndpoints = when (bottomTab) {
+            ServerBottomTab.FTP -> ftpEndpoints
+            ServerBottomTab.MOVIE -> movieEndpoints
+            ServerBottomTab.TV -> tvEndpoints
+            ServerBottomTab.OTT -> emptyList()
+        }
+
+        val workingCount = categoryEndpoints.count { statusTabFor(activeResults[it.id]?.status) == ServerStatusTab.WORKING }
+        val notTestedCount = categoryEndpoints.count { statusTabFor(activeResults[it.id]?.status) == ServerStatusTab.NOT_TESTED }
+        val notWorkingCount = categoryEndpoints.count { statusTabFor(activeResults[it.id]?.status) == ServerStatusTab.NOT_WORKING }
 
         val normalizedQuery = query.trim().lowercase()
-        val filtered = allEndpoints
+        val filtered = categoryEndpoints
             .asSequence()
-            .filter { statusTabFor(results[it.id]?.status) == statusTab }
-            .filter { endpoint ->
-                when (bottomTab) {
-                    ServerBottomTab.ALL -> true
-                    ServerBottomTab.OTT -> false
-                    ServerBottomTab.TV -> ServerDisplayClassifier.classify(endpoint) == ServerDisplayCategory.TV
-                    ServerBottomTab.FTP -> ServerDisplayClassifier.classify(endpoint) == ServerDisplayCategory.FTP
-                    ServerBottomTab.MOVIE -> ServerDisplayClassifier.classify(endpoint) == ServerDisplayCategory.MOVIE
-                }
-            }
+            .filter { statusTabFor(activeResults[it.id]?.status) == statusTab }
             .filter {
                 normalizedQuery.isEmpty() ||
                     it.name.lowercase().contains(normalizedQuery) ||
+                    it.sourceAttribution.orEmpty().lowercase().contains(normalizedQuery) ||
                     it.originalUrl.lowercase().contains(normalizedQuery) ||
                     it.host.lowercase().contains(normalizedQuery) ||
+                    UrlParser.hostAndPortLabel(it.host, it.explicitPort).lowercase().contains(normalizedQuery) ||
                     ServerDisplayClassifier.displayLabel(it).lowercase().contains(normalizedQuery)
             }
             .toList()
@@ -157,7 +173,7 @@ class ServersViewModel(
                     ServerSortOrder.PROTOCOL -> list.sortedBy { it.protocol.displayLabel }
                     ServerSortOrder.LATENCY -> list.sortedWith(
                         compareBy<ServerEndpoint> { endpoint ->
-                            results[endpoint.id]?.primaryLatencyMs?.takeIf { it >= 0L } ?: Long.MAX_VALUE
+                            activeResults[endpoint.id]?.primaryLatencyMs?.takeIf { it >= 0L } ?: Long.MAX_VALUE
                         }.thenBy { it.name.lowercase() }
                     )
                 }
@@ -185,13 +201,17 @@ class ServersViewModel(
             filteredServers = filtered,
             filteredOttPlatforms = filteredOtt,
             selectedOttRegion = ottRegion,
-            latestResults = results,
+            latestResults = activeResults,
             favorites = favorites,
             selectedStatusTab = statusTab,
             selectedBottomTab = bottomTab,
             workingCount = workingCount,
             notTestedCount = notTestedCount,
             notWorkingCount = notWorkingCount,
+            ftpCount = ftpEndpoints.size,
+            movieCount = movieEndpoints.size,
+            tvCount = tvEndpoints.size,
+            ottCount = BdOttPlatforms.all.size,
             selectedCategory = _selectedCategory.value,
             selectedProtocol = _selectedProtocol.value,
             selectedStatus = _selectedStatus.value,
@@ -221,9 +241,12 @@ class ServersViewModel(
     }
 
     fun prepareForViewing() {
-        val results = catalogRepository.latestResults.value
-        val hasWorking = results.values.any { it.status == TestStatus.REACHABLE }
-        val hasAnyTested = results.isNotEmpty()
+        val activeResults = ActiveResultMatcher.matchActive(
+            catalogRepository.endpoints.value,
+            catalogRepository.latestResults.value
+        )
+        val hasWorking = activeResults.values.any { it.status == TestStatus.REACHABLE }
+        val hasAnyTested = activeResults.isNotEmpty()
         _selectedStatusTab.value = when {
             hasWorking -> ServerStatusTab.WORKING
             !hasAnyTested -> ServerStatusTab.NOT_TESTED
@@ -260,7 +283,6 @@ class ServersViewModel(
     }
 
     fun clearFilters() {
-        _selectedBottomTab.value = ServerBottomTab.ALL
         _selectedOttRegion.value = OttRegionFilter.ALL
         _selectedCategory.value = ServerCategory.ALL
         _selectedProtocol.value = null

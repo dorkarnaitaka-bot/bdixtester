@@ -1,5 +1,6 @@
 package com.jubayerhossain.bdixtester.feature.servers
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -18,6 +19,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,7 +42,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AutoAwesome
@@ -99,6 +101,7 @@ import androidx.compose.ui.unit.dp
 import com.jubayerhossain.bdixtester.R
 import com.jubayerhossain.bdixtester.core.util.ServerDisplayCategory
 import com.jubayerhossain.bdixtester.core.util.ServerDisplayClassifier
+import com.jubayerhossain.bdixtester.core.validation.UrlParser
 import com.jubayerhossain.bdixtester.data.catalog.BdOttPlatforms
 import com.jubayerhossain.bdixtester.data.catalog.OttGenre
 import com.jubayerhossain.bdixtester.data.catalog.OttPlatform
@@ -116,7 +119,15 @@ import com.jubayerhossain.bdixtester.ui.theme.BdixIconSize
 import com.jubayerhossain.bdixtester.ui.theme.BdixSpacing
 import com.jubayerhossain.bdixtester.ui.theme.BdixTesterTheme
 import com.jubayerhossain.bdixtester.ui.theme.LocalBdixSemanticColors
+import com.jubayerhossain.bdixtester.ui.theme.MonoBadgeStyle
 import com.jubayerhossain.bdixtester.ui.theme.MonoUrlStyle
+
+private data class CategoryChipSpec(
+    val tab: ServerBottomTab,
+    @StringRes val labelRes: Int,
+    val count: Int,
+    val icon: ImageVector
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -307,7 +318,7 @@ fun ServersScreen(
                 )
             }
 
-            // Single-row Category Selector (All, OTT, TV, FTP, Movie)
+            // Single-row serial Category Selector (FTP -> Movies -> TV -> OTT) with live counts
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -317,30 +328,52 @@ fun ServersScreen(
                 horizontalArrangement = Arrangement.spacedBy(BdixSpacing.sm)
             ) {
                 val categories = listOf(
-                    Triple(ServerBottomTab.ALL, R.string.servers_bottom_all, Icons.AutoMirrored.Rounded.FormatListBulleted),
-                    Triple(ServerBottomTab.OTT, R.string.servers_bottom_ott, Icons.Rounded.SmartDisplay),
-                    Triple(ServerBottomTab.TV, R.string.servers_bottom_tv, Icons.Rounded.LiveTv),
-                    Triple(ServerBottomTab.FTP, R.string.servers_bottom_ftp, Icons.Rounded.FolderShared),
-                    Triple(ServerBottomTab.MOVIE, R.string.servers_bottom_movie, Icons.Rounded.Movie)
+                    CategoryChipSpec(
+                        tab = ServerBottomTab.FTP,
+                        labelRes = R.string.servers_bottom_ftp_count,
+                        count = uiState.ftpCount,
+                        icon = Icons.Rounded.FolderShared
+                    ),
+                    CategoryChipSpec(
+                        tab = ServerBottomTab.MOVIE,
+                        labelRes = R.string.servers_bottom_movie_count,
+                        count = uiState.movieCount,
+                        icon = Icons.Rounded.Movie
+                    ),
+                    CategoryChipSpec(
+                        tab = ServerBottomTab.TV,
+                        labelRes = R.string.servers_bottom_tv_count,
+                        count = uiState.tvCount,
+                        icon = Icons.Rounded.LiveTv
+                    ),
+                    CategoryChipSpec(
+                        tab = ServerBottomTab.OTT,
+                        labelRes = R.string.servers_bottom_ott_count,
+                        count = uiState.ottCount,
+                        icon = Icons.Rounded.SmartDisplay
+                    )
                 )
-                items(categories) { (tab, labelRes, icon) ->
-                    val selected = uiState.selectedBottomTab == tab
+                items(categories) { spec ->
+                    val selected = uiState.selectedBottomTab == spec.tab
                     FilterChip(
                         selected = selected,
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            onSelectBottomTab(tab)
+                            onSelectBottomTab(spec.tab)
                         },
                         label = {
                             Text(
-                                text = stringResource(labelRes),
+                                text = stringResource(spec.labelRes, spec.count),
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontFeatureSettings = "tnum"
+                                ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         },
                         leadingIcon = {
                             Icon(
-                                imageVector = icon,
+                                imageVector = spec.icon,
                                 contentDescription = null,
                                 modifier = Modifier.size(BdixIconSize.sm)
                             )
@@ -361,7 +394,7 @@ fun ServersScreen(
                         ),
                         modifier = Modifier
                             .heightIn(min = 48.dp)
-                            .testTag("servers_category_${tab.name.lowercase()}")
+                            .testTag("servers_category_${spec.tab.name.lowercase()}")
                     )
                 }
             }
@@ -444,7 +477,7 @@ fun ServersScreen(
                         onOpenUrl = onOpenUrl
                     )
                 } else if (uiState.filteredServers.isEmpty()) {
-                    val hasActiveFilters = uiState.searchQuery.isNotBlank() || uiState.selectedBottomTab != ServerBottomTab.ALL
+                    val hasActiveFilters = uiState.searchQuery.isNotBlank()
                     val isWorkingEmpty = !hasActiveFilters && uiState.selectedStatusTab == ServerStatusTab.WORKING
                     val emptyDesc = when {
                         hasActiveFilters -> stringResource(R.string.servers_empty_filter_desc)
@@ -843,6 +876,7 @@ private fun StatusHeaderTab(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ServerListCard(
     endpoint: ServerEndpoint,
@@ -945,9 +979,16 @@ private fun ServerListCard(
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    val hostOrIpLabel = UrlParser.hostAndPortLabel(endpoint.host, endpoint.explicitPort)
+                    val isIpHost = UrlParser.isValidIpv4Host(endpoint.host)
+                    val hostBadgeText = stringResource(
+                        if (isIpHost) R.string.server_badge_ip else R.string.server_badge_host,
+                        hostOrIpLabel
+                    )
+
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -961,6 +1002,22 @@ private fun ServerListCard(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
+                        }
+
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            LtrContent {
+                                Text(
+                                    text = hostBadgeText,
+                                    style = MonoBadgeStyle,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
 
                         if (latencyMs != null) {

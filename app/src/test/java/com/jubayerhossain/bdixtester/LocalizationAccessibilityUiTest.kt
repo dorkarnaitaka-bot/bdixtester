@@ -6,6 +6,10 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.test.core.app.ApplicationProvider
+import com.jubayerhossain.bdixtester.core.model.AppLanguage
+import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -18,6 +22,14 @@ class LocalizationAccessibilityUiTest {
 
     @get:Rule
     val composeTestRule = createAndroidComposeRule<MainActivity>()
+
+    @After
+    fun resetLanguagePreference() {
+        runBlocking {
+            val app = ApplicationProvider.getApplicationContext<BdixtesterApplication>()
+            app.appContainer.settingsRepository.setAppLanguage(AppLanguage.SYSTEM)
+        }
+    }
 
     @Test
     fun banglaLocaleRendersBottomNavigationOttDirectoryAndModernSettingsWithoutCrash() {

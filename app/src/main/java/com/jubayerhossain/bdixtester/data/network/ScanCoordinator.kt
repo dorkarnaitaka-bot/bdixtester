@@ -18,18 +18,22 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 class RoutingEndpointProbeExecutor(
@@ -63,9 +67,21 @@ class ScanCoordinator(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val clock: () -> Long = { System.currentTimeMillis() }
 ) {
+    private data class ActiveScanMeta(
+        val job: Job,
+        val scanRunId: String,
+        val scanMode: ScanMode,
+        val scanScope: ScanScope,
+        val totalCatalogEntries: Int,
+        val uniqueExactUrlCount: Int,
+        val startNanos: Long,
+        val startEpoch: Long,
+        val finalized: AtomicBoolean = AtomicBoolean(false)
+    )
+
     private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
     private val scanLock = Mutex()
-    private var activeScanJob: Job? = null
+    private var activeScanMeta: ActiveScanMeta? = null
 
     suspend fun startScan(
         endpoints: List<ServerEndpoint>,
@@ -74,7 +90,7 @@ class ScanCoordinator(
         settings: AppSettings
     ): Boolean {
         return scanLock.withLock {
-            if (activeScanJob?.isActive == true) {
+            if (activeScanMeta?.job?.isActive == true) {
                 return@withLock false
             }
             if (endpoints.isEmpty()) {
@@ -90,6 +106,7 @@ class ScanCoordinator(
             val groupedByExactUrl = endpoints.groupBy { it.originalUrl }
             val startNanos = System.nanoTime()
             val startEpoch = clock()
+            val finalized = AtomicBoolean(false)
 
             updateProgress(
                 ScanProgressState(
@@ -134,20 +151,80 @@ class ScanCoordinator(
                     concurrency = concurrency,
                     config = config,
                     startNanos = startNanos,
-                    startEpoch = startEpoch
+                    startEpoch = startEpoch,
+                    finalized = finalized
                 )
             }
-            activeScanJob = job
+            activeScanMeta = ActiveScanMeta(
+                job = job,
+                scanRunId = scanRunId,
+                scanMode = scanMode,
+                scanScope = scanScope,
+                totalCatalogEntries = endpoints.size,
+                uniqueExactUrlCount = groupedByExactUrl.size,
+                startNanos = startNanos,
+                startEpoch = startEpoch,
+                finalized = finalized
+            )
             true
         }
     }
 
     suspend fun stopScan() {
-        val jobToCancel = scanLock.withLock {
-            activeScanJob
+        val meta = scanLock.withLock {
+            activeScanMeta
+        } ?: return
+        meta.job.cancelAndJoin()
+        if (meta.finalized.compareAndSet(false, true)) {
+            withContext(NonCancellable) {
+                val finishedAt = clock()
+                val elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - meta.startNanos)
+                updateProgress(
+                    ScanProgressState(
+                        scanRunId = meta.scanRunId,
+                        sessionState = ScanSessionState.CANCELLED,
+                        isScanning = false,
+                        scanMode = meta.scanMode,
+                        scanScope = meta.scanScope,
+                        totalCount = meta.totalCatalogEntries,
+                        totalCatalogEntries = meta.totalCatalogEntries,
+                        uniqueExactUrlCount = meta.uniqueExactUrlCount,
+                        executedUniqueProbeCount = 0,
+                        mappedSourceEntryCount = 0,
+                        queuedCount = 0,
+                        activeCount = 0,
+                        completedCount = 0,
+                        reachableCount = 0,
+                        unreachableCount = 0,
+                        restrictedOrErrorCount = 0,
+                        unsupportedCount = 0,
+                        cancelledCount = meta.totalCatalogEntries,
+                        elapsedMs = elapsed,
+                        lastScanCompletedAtEpochMs = finishedAt
+                    )
+                )
+                persistSession(
+                    ScanSessionEntity(
+                        scanRunId = meta.scanRunId,
+                        scanMode = meta.scanMode.name,
+                        scopeLabel = meta.scanScope.name,
+                        state = ScanSessionState.CANCELLED.name,
+                        totalCatalogEntries = meta.totalCatalogEntries,
+                        uniqueExactUrlCount = meta.uniqueExactUrlCount,
+                        executedUniqueProbeCount = 0,
+                        mappedSourceEntryCount = 0,
+                        startedAtEpochMs = meta.startEpoch,
+                        updatedAtEpochMs = finishedAt,
+                        finishedAtEpochMs = finishedAt
+                    )
+                )
+                scanLock.withLock {
+                    if (activeScanMeta?.scanRunId == meta.scanRunId) {
+                        activeScanMeta = null
+                    }
+                }
+            }
         }
-        jobToCancel?.cancel()
-        jobToCancel?.join()
     }
 
     suspend fun testSingleEndpoint(
@@ -176,7 +253,8 @@ class ScanCoordinator(
         concurrency: Int,
         config: EndpointProbeConfig,
         startNanos: Long,
-        startEpoch: Long
+        startEpoch: Long,
+        finalized: AtomicBoolean
     ) {
         val semaphore = Semaphore(concurrency)
         val hostMutexes = ConcurrentHashMap<String, Mutex>()
@@ -267,59 +345,65 @@ class ScanCoordinator(
         } catch (_: CancellationException) {
             wasCancelled = true
         } finally {
-            val finishedAt = clock()
-            val elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos)
-            val remainingCancelled = if (wasCancelled) {
-                (endpoints.size - mappedEntries.get()).coerceAtLeast(0)
-            } else {
-                0
-            }
-            val totalCancelled = cancelled.get() + remainingCancelled
-            val finalState = if (wasCancelled) ScanSessionState.CANCELLED else ScanSessionState.COMPLETED
+            withContext(NonCancellable) {
+                if (finalized.compareAndSet(false, true)) {
+                    val finishedAt = clock()
+                    val elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos)
+                    val remainingCancelled = if (wasCancelled) {
+                        (endpoints.size - mappedEntries.get()).coerceAtLeast(0)
+                    } else {
+                        0
+                    }
+                    val totalCancelled = cancelled.get() + remainingCancelled
+                    val finalState = if (wasCancelled) ScanSessionState.CANCELLED else ScanSessionState.COMPLETED
 
-            updateProgress(
-                ScanProgressState(
-                    scanRunId = scanRunId,
-                    sessionState = finalState,
-                    isScanning = false,
-                    scanMode = scanMode,
-                    scanScope = scanScope,
-                    totalCount = endpoints.size,
-                    totalCatalogEntries = endpoints.size,
-                    uniqueExactUrlCount = groupedByExactUrl.size,
-                    executedUniqueProbeCount = executedProbes.get(),
-                    mappedSourceEntryCount = mappedEntries.get(),
-                    queuedCount = 0,
-                    activeCount = 0,
-                    completedCount = mappedEntries.get(),
-                    reachableCount = reachable.get(),
-                    unreachableCount = unreachable.get(),
-                    restrictedOrErrorCount = restricted.get(),
-                    unsupportedCount = unsupported.get(),
-                    cancelledCount = totalCancelled,
-                    elapsedMs = elapsed,
-                    lastScanCompletedAtEpochMs = finishedAt
-                )
-            )
+                    updateProgress(
+                        ScanProgressState(
+                            scanRunId = scanRunId,
+                            sessionState = finalState,
+                            isScanning = false,
+                            scanMode = scanMode,
+                            scanScope = scanScope,
+                            totalCount = endpoints.size,
+                            totalCatalogEntries = endpoints.size,
+                            uniqueExactUrlCount = groupedByExactUrl.size,
+                            executedUniqueProbeCount = executedProbes.get(),
+                            mappedSourceEntryCount = mappedEntries.get(),
+                            queuedCount = 0,
+                            activeCount = 0,
+                            completedCount = mappedEntries.get(),
+                            reachableCount = reachable.get(),
+                            unreachableCount = unreachable.get(),
+                            restrictedOrErrorCount = restricted.get(),
+                            unsupportedCount = unsupported.get(),
+                            cancelledCount = totalCancelled,
+                            elapsedMs = elapsed,
+                            lastScanCompletedAtEpochMs = finishedAt
+                        )
+                    )
 
-            persistSession(
-                ScanSessionEntity(
-                    scanRunId = scanRunId,
-                    scanMode = scanMode.name,
-                    scopeLabel = scanScope.name,
-                    state = finalState.name,
-                    totalCatalogEntries = endpoints.size,
-                    uniqueExactUrlCount = groupedByExactUrl.size,
-                    executedUniqueProbeCount = executedProbes.get(),
-                    mappedSourceEntryCount = mappedEntries.get(),
-                    startedAtEpochMs = startEpoch,
-                    updatedAtEpochMs = finishedAt,
-                    finishedAtEpochMs = finishedAt
-                )
-            )
+                    persistSession(
+                        ScanSessionEntity(
+                            scanRunId = scanRunId,
+                            scanMode = scanMode.name,
+                            scopeLabel = scanScope.name,
+                            state = finalState.name,
+                            totalCatalogEntries = endpoints.size,
+                            uniqueExactUrlCount = groupedByExactUrl.size,
+                            executedUniqueProbeCount = executedProbes.get(),
+                            mappedSourceEntryCount = mappedEntries.get(),
+                            startedAtEpochMs = startEpoch,
+                            updatedAtEpochMs = finishedAt,
+                            finishedAtEpochMs = finishedAt
+                        )
+                    )
+                }
 
-            scanLock.withLock {
-                activeScanJob = null
+                scanLock.withLock {
+                    if (activeScanMeta?.scanRunId == scanRunId) {
+                        activeScanMeta = null
+                    }
+                }
             }
         }
     }

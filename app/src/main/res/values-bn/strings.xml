@@ -191,6 +191,10 @@
     <string name="servers_bottom_tv">টিভি</string>
     <string name="servers_bottom_ftp">FTP</string>
     <string name="servers_bottom_movie">মুভি</string>
+    <string name="servers_bottom_ftp_count">FTP (%1$d)</string>
+    <string name="servers_bottom_movie_count">মুভি (%1$d)</string>
+    <string name="servers_bottom_tv_count">টিভি (%1$d)</string>
+    <string name="servers_bottom_ott_count">OTT (%1$d)</string>
     <string name="servers_bottom_search">অনুসন্ধান</string>
     <string name="servers_empty_working_desc">এখনো কোনো সচল সার্ভার পাওয়া যায়নি। BDIX নেটওয়ার্ক যাচাই করতে নিচের বাটনে ট্যাপ করুন।</string>
     <string name="servers_empty_not_working_desc">এই ক্যাটাগরিতে এখনো কোনো অচল সার্ভার নেই।</string>
@@ -213,6 +217,8 @@
     <string name="servers_open_details_a11y">%1$s-এর বিবরণ দেখুন</string>
     <string name="servers_sync_catalog_a11y">সার্ভার তালিকা সিঙ্ক করুন</string>
     <string name="servers_latency_chip">%1$d ms</string>
+    <string name="server_badge_ip">আইপি: %1$s</string>
+    <string name="server_badge_host">হোস্ট: %1$s</string>
     <string name="details_open_browser_failed">এই URL-এর জন্য বাইরের ব্রাউজার চালু করা যায়নি।</string>
     <string name="saved_title">সংরক্ষিত সার্ভার</string>
     <string name="history_title">পরীক্ষার ইতিহাস</string>

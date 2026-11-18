@@ -3,7 +3,6 @@ package com.jubayerhossain.bdixtester.data.repository
 import com.jubayerhossain.bdixtester.core.model.CatalogAuditSummary
 import com.jubayerhossain.bdixtester.core.model.ServerCategory
 import com.jubayerhossain.bdixtester.data.catalog.BuiltInCatalog
-import com.jubayerhossain.bdixtester.data.catalog.FtpLinks
 import com.jubayerhossain.bdixtester.domain.model.CatalogIntegrityReport
 import com.jubayerhossain.bdixtester.domain.model.CatalogSyncState
 import com.jubayerhossain.bdixtester.domain.model.FavoriteInfo
@@ -22,10 +21,14 @@ import kotlinx.coroutines.flow.map
  * Production runtime uses [RoomCatalogRepository].
  */
 class InMemoryCatalogRepository(
-    rawLinks: List<String> = FtpLinks.links
+    rawLinks: List<String>? = null
 ) : CatalogRepository {
 
-    private val parsedEndpoints: List<ServerEndpoint> = BuiltInCatalog.parseSourceCatalog(rawLinks)
+    private val parsedEndpoints: List<ServerEndpoint> = if (rawLinks == null) {
+        BuiltInCatalog.loadCuratedCatalog()
+    } else {
+        BuiltInCatalog.parseSourceCatalog(rawLinks)
+    }
 
     private val _endpoints = MutableStateFlow(parsedEndpoints)
     override val endpoints: StateFlow<List<ServerEndpoint>> = _endpoints.asStateFlow()
@@ -49,7 +52,13 @@ class InMemoryCatalogRepository(
     )
     override val scanProgress: StateFlow<ScanProgressState> = _scanProgress.asStateFlow()
 
-    private val _auditSummary = MutableStateFlow(BuiltInCatalog.computeAuditSummary(rawLinks))
+    private val _auditSummary = MutableStateFlow(
+        if (rawLinks == null) {
+            BuiltInCatalog.computeCuratedAuditSummary()
+        } else {
+            BuiltInCatalog.computeAuditSummary(rawLinks)
+        }
+    )
     override val auditSummary: StateFlow<CatalogAuditSummary> = _auditSummary.asStateFlow()
 
     private val _catalogSyncState = MutableStateFlow(CatalogSyncState())

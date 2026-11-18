@@ -8,6 +8,7 @@ import com.jubayerhossain.bdixtester.core.model.AppLanguage
 import com.jubayerhossain.bdixtester.core.model.ScanMode
 import com.jubayerhossain.bdixtester.core.model.ThemePreference
 import com.jubayerhossain.bdixtester.core.network.NetworkSnapshot
+import com.jubayerhossain.bdixtester.data.catalog.BuiltInCatalog
 import com.jubayerhossain.bdixtester.data.preferences.AppSettings
 import com.jubayerhossain.bdixtester.domain.model.CatalogIntegrityReport
 import com.jubayerhossain.bdixtester.domain.model.CatalogSyncState
@@ -24,7 +25,7 @@ data class SettingsUiState(
     val catalogSyncState: CatalogSyncState = CatalogSyncState(),
     val catalogIntegrity: CatalogIntegrityReport? = null,
     val networkSnapshot: NetworkSnapshot = NetworkSnapshot(),
-    val totalServerCount: Int = 369,
+    val totalServerCount: Int = BuiltInCatalog.DEFAULT_CURATED_COUNT,
     val isSyncing: Boolean = false
 )
 
@@ -41,7 +42,7 @@ class SettingsViewModel(
         catalogRepo.catalogIntegrity,
         catalogRepo.endpoints
     ) { syncState, integrity, endpoints ->
-        Triple(syncState, integrity, endpoints.size.takeIf { it > 0 } ?: 369)
+        Triple(syncState, integrity, endpoints.size.takeIf { it > 0 } ?: BuiltInCatalog.DEFAULT_CURATED_COUNT)
     }
 
     val uiState: StateFlow<SettingsUiState> = combine(

@@ -11,6 +11,7 @@ import com.jubayerhossain.bdixtester.core.model.ScanSessionState
 import com.jubayerhossain.bdixtester.core.model.ServerCategory
 import com.jubayerhossain.bdixtester.core.model.ServerProtocol
 import com.jubayerhossain.bdixtester.core.model.TestStatus
+import com.jubayerhossain.bdixtester.data.catalog.BuiltInCatalog
 import com.jubayerhossain.bdixtester.data.catalog.FtpLinks
 import com.jubayerhossain.bdixtester.data.local.BdixDatabase
 import com.jubayerhossain.bdixtester.data.local.entity.ScanSessionEntity
@@ -18,6 +19,7 @@ import com.jubayerhossain.bdixtester.data.local.entity.ServerEntity
 import com.jubayerhossain.bdixtester.data.repository.RoomCatalogRepository
 import com.jubayerhossain.bdixtester.domain.model.ServerTestResult
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.After
@@ -37,6 +39,7 @@ class RoomDatabaseMigrationTest {
 
     private lateinit var context: Context
     private lateinit var db: BdixDatabase
+    private var activeRepo: RoomCatalogRepository? = null
 
     @Before
     fun setUp() {
@@ -49,6 +52,7 @@ class RoomDatabaseMigrationTest {
 
     @After
     fun tearDown() {
+        runBlocking { activeRepo?.closeAndJoin() }
         db.close()
     }
 
@@ -189,15 +193,16 @@ class RoomDatabaseMigrationTest {
     }
 
     @Test
-    fun repositorySeedsAll369BuiltInEntriesDeterministicallyAndRecoversInterruptedSession() = runTest {
+    fun repositorySeedsCuratedCatalogSyncsUpgradesAndRejectsDuplicateCustomServers() = runTest {
+        val curatedCatalog = BuiltInCatalog.loadCuratedCatalog()
         db.scanSessionDao().upsertSession(
             ScanSessionEntity(
                 scanRunId = "orphaned_run",
                 scanMode = ScanMode.FULL_SCAN.name,
                 scopeLabel = "ALL_SERVERS",
                 state = ScanSessionState.RUNNING.name,
-                totalCatalogEntries = 369,
-                uniqueExactUrlCount = 365,
+                totalCatalogEntries = curatedCatalog.size,
+                uniqueExactUrlCount = curatedCatalog.size,
                 executedUniqueProbeCount = 12,
                 mappedSourceEntryCount = 12,
                 startedAtEpochMs = 1000L,
@@ -206,18 +211,18 @@ class RoomDatabaseMigrationTest {
             )
         )
 
-        val repo = RoomCatalogRepository(database = db, rawBuiltInLinks = FtpLinks.links)
+        val repo = RoomCatalogRepository(database = db).also { activeRepo = it }
         val firstReport = repo.ensureInitialized()
         assertTrue(firstReport.isConsistent)
-        assertEquals(369, firstReport.builtInSourceCount)
-        assertEquals(369, firstReport.builtInDatabaseCount)
+        assertEquals(curatedCatalog.size, firstReport.builtInSourceCount)
+        assertEquals(curatedCatalog.size, firstReport.builtInDatabaseCount)
         assertTrue(firstReport.orderMatches)
         assertTrue(firstReport.exactUrlsMatch)
 
         // Idempotent second call
         val secondReport = repo.ensureInitialized()
         assertTrue(secondReport.isConsistent)
-        assertEquals(369, db.serverDao().countBuiltInServers())
+        assertEquals(curatedCatalog.size, db.serverDao().countBuiltInServers())
 
         // Interrupted scan session should no longer be RUNNING
         assertTrue(db.scanSessionDao().getRunningSessions().isEmpty())
@@ -247,6 +252,55 @@ class RoomDatabaseMigrationTest {
             )
         )
 
+        // Duplicate rejection: built-in URL with trailing slash or different case, and existing custom URL
+        val dupBuiltIn = repo.saveCustomServer(
+            name = "Dup BuiltIn",
+            rawUrl = "http://103.58.73.6/",
+            category = ServerCategory.FTP_FILES,
+            speedTestUrl = null
+        )
+        assertTrue(dupBuiltIn.isFailure)
+
+        val dupCustom = repo.saveCustomServer(
+            name = "Dup Custom",
+            rawUrl = "HTTP://192.168.0.10:8096/",
+            category = ServerCategory.MOVIES,
+            speedTestUrl = null
+        )
+        assertTrue(dupCustom.isFailure)
+
+        // Simulate upgrading from an older built-in row (stale metadata & count) without losing custom data
+        db.serverDao().syncBuiltInServersAtomically(
+            BuiltInCatalog.parseSourceCatalog(FtpLinks.links.take(3)).map {
+                ServerEntity(
+                    id = it.id,
+                    sourceType = CatalogSourceType.BUILT_IN.name,
+                    sourceIndex = it.sourceIndex,
+                    feedId = null,
+                    remoteEntryId = null,
+                    name = it.name,
+                    originalUrl = it.originalUrl,
+                    host = it.host,
+                    explicitPort = it.explicitPort,
+                    protocol = it.protocol.name,
+                    category = it.category.name,
+                    isFeatured = false,
+                    description = null,
+                    sourceAttribution = it.sourceAttribution,
+                    verificationState = it.verificationState.name,
+                    lastReviewedAtEpochMs = null,
+                    speedTestUrl = null,
+                    speedTestMaxBytes = null,
+                    isPrivateIp = it.isPrivateIp,
+                    createdAtEpochMs = 100L,
+                    updatedAtEpochMs = 100L
+                )
+            }
+        )
+        val upgradeReport = repo.ensureInitialized()
+        assertTrue(upgradeReport.isConsistent)
+        assertEquals(curatedCatalog.size, db.serverDao().countBuiltInServers())
+
         db.serverDao().replaceRemoteCatalogAtomically(
             listOf(
                 ServerEntity(
@@ -275,7 +329,7 @@ class RoomDatabaseMigrationTest {
             )
         )
 
-        assertEquals(369, db.serverDao().countBuiltInServers())
+        assertEquals(curatedCatalog.size, db.serverDao().countBuiltInServers())
         assertEquals(1, db.serverDao().countRemoteServers())
         assertNotNull(db.serverDao().getServerById(custom.id))
         assertEquals(true, db.favoriteDao().getFavorite(custom.id)?.isPinned)

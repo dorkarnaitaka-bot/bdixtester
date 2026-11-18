@@ -46,10 +46,17 @@ fun CustomServerDialog(
     var name by remember(initialEndpoint) { mutableStateOf(initialEndpoint?.name.orEmpty()) }
     var rawUrl by remember(initialEndpoint) { mutableStateOf(initialEndpoint?.originalUrl.orEmpty()) }
     var speedUrl by remember(initialEndpoint) { mutableStateOf(initialEndpoint?.speedTestUrl.orEmpty()) }
+    val selectableCategories = remember {
+        listOf(
+            ServerCategory.FTP_FILES,
+            ServerCategory.MOVIES,
+            ServerCategory.LIVE_TV
+        )
+    }
     var selectedCategory by remember(initialEndpoint) {
         mutableStateOf(
-            initialEndpoint?.category?.takeIf { it != ServerCategory.ALL }
-                ?: ServerCategory.OTHER
+            initialEndpoint?.category?.takeIf { it in selectableCategories }
+                ?: ServerCategory.FTP_FILES
         )
     }
 
@@ -110,16 +117,16 @@ fun CustomServerDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    ServerCategory.entries
-                        .filter { it != ServerCategory.ALL }
-                        .forEach { category ->
-                            FilterChip(
-                                selected = selectedCategory == category,
-                                onClick = { selectedCategory = category },
-                                label = { Text(category.displayName) },
-                                modifier = Modifier.heightIn(min = 48.dp)
-                            )
-                        }
+                    selectableCategories.forEach { category ->
+                        FilterChip(
+                            selected = selectedCategory == category,
+                            onClick = { selectedCategory = category },
+                            label = { Text(category.displayName) },
+                            modifier = Modifier
+                                .heightIn(min = 48.dp)
+                                .testTag("custom_server_category_${category.name.lowercase()}")
+                        )
+                    }
                 }
 
                 if (!errorMessage.isNullOrBlank()) {

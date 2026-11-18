@@ -13,11 +13,98 @@ object BuiltInCatalog {
     fun builtInIdForIndex(sourceIndex: Int): String = "builtin:$sourceIndex"
 
     /**
-     * Parses [rawLinks] into immutable [ServerEndpoint] records preserving:
-     * - all supplied entries in exact original order (`sourceIndex = 0..N-1`)
-     * - exact duplicates via unique deterministic `builtin:<sourceIndex>` identity
-     * - uncurated metadata rules: hostname fallback, `ServerCategory.UNCATEGORIZED`,
-     *   `isFeatured = false`, `VerificationState.UNKNOWN`, and unchanged verbatim `originalUrl`.
+     * Loads the curated multi-ISP BDIX catalog (FTP, Movies, Live TV) with zero duplicates
+     * allowed (deduplicated by [UrlParser.canonicalKey]).
+     */
+    fun loadCuratedCatalog(
+        entries: List<BuiltInCatalogEntry> = BundledBdixCatalog.entries
+    ): List<ServerEndpoint> {
+        val result = ArrayList<ServerEndpoint>(entries.size)
+        val seenKeys = HashSet<String>(entries.size)
+
+        entries.forEach { entry ->
+            val cleanedUrl = entry.url.trim()
+            if (cleanedUrl.isEmpty()) return@forEach
+
+            val canonicalKey = UrlParser.canonicalKey(cleanedUrl)
+            if (canonicalKey.isEmpty() || !seenKeys.add(canonicalKey)) {
+                return@forEach
+            }
+
+            val parsed = UrlParser.parse(cleanedUrl)
+            if (!parsed.isValid || parsed.host == null) {
+                return@forEach
+            }
+
+            val sourceIndex = result.size
+            val ispDisplayName = entry.ispName.trim().ifEmpty {
+                buildDisplayName(parsed.host, parsed.explicitPort)
+            }
+
+            result.add(
+                ServerEndpoint(
+                    id = builtInIdForIndex(sourceIndex),
+                    name = ispDisplayName,
+                    originalUrl = cleanedUrl,
+                    host = parsed.host,
+                    explicitPort = parsed.explicitPort,
+                    protocol = parsed.protocol,
+                    category = entry.category,
+                    isFeatured = false,
+                    sourceType = CatalogSourceType.BUILT_IN,
+                    sourceIndex = sourceIndex,
+                    verificationState = VerificationState.UNKNOWN,
+                    lastReviewedAtEpochMs = null,
+                    description = null,
+                    sourceAttribution = ispDisplayName,
+                    speedTestUrl = null,
+                    speedTestMaxBytes = null,
+                    isPrivateIp = parsed.isPrivateIp
+                )
+            )
+        }
+        return result
+    }
+
+    fun computeCuratedAuditSummary(
+        entries: List<BuiltInCatalogEntry> = BundledBdixCatalog.entries
+    ): CatalogAuditSummary {
+        val curated = loadCuratedCatalog(entries)
+        val parsedList = curated.map { UrlParser.parse(it.originalUrl) }
+        val validEntries = parsedList.filter { it.isValid }
+        val rawSourceTotal = if (entries === BundledBdixCatalog.entries) {
+            RAW_JSON_SOURCE_COUNT
+        } else {
+            entries.size
+        }
+
+        return CatalogAuditSummary(
+            expectedSourceCount = rawSourceTotal,
+            originalEndpointCount = rawSourceTotal,
+            discrepancyCount = 0,
+            successfullyParsedCount = validEntries.size,
+            uniqueEndpointCount = curated.size,
+            exactDuplicateCount = (rawSourceTotal - curated.size).coerceAtLeast(0),
+            invalidUrlCount = parsedList.count { !it.isValid },
+            httpEndpointCount = validEntries.count { it.protocol == ServerProtocol.HTTP },
+            httpsEndpointCount = validEntries.count { it.protocol == ServerProtocol.HTTPS },
+            ftpEndpointCount = validEntries.count { it.protocol == ServerProtocol.FTP },
+            ftpsEndpointCount = validEntries.count { it.protocol == ServerProtocol.FTPS },
+            unsupportedSchemeCount = parsedList.count {
+                it.isValid && it.protocol == ServerProtocol.UNSUPPORTED
+            },
+            hostnameEndpointCount = validEntries.count { !it.isIpv4 },
+            publicIpv4EndpointCount = validEntries.count { it.isIpv4 && !it.isPrivateIp },
+            privateIpv4EndpointCount = validEntries.count { it.isPrivateIp },
+            explicitPortCount = validEntries.count { it.explicitPort != null },
+            nonRootPathCount = validEntries.count { it.hasNonRootPath },
+            manualReviewCount = parsedList.count { it.requiresManualReview }
+        )
+    }
+
+    /**
+     * Parses raw URL strings into [ServerEndpoint] records while preserving exact order and items
+     * for explicit raw-list audit & probe-coalescing tests.
      */
     fun parseSourceCatalog(rawLinks: List<String> = FtpLinks.links): List<ServerEndpoint> {
         val result = ArrayList<ServerEndpoint>(rawLinks.size)
@@ -52,10 +139,9 @@ object BuiltInCatalog {
         return result
     }
 
-    /**
-     * Backward-compatible alias that returns all preserved source entries in source order.
-     */
-    fun parseRuntimeCatalog(rawLinks: List<String> = FtpLinks.links): List<ServerEndpoint> =
+    fun parseRuntimeCatalog(): List<ServerEndpoint> = loadCuratedCatalog()
+
+    fun parseRuntimeCatalog(rawLinks: List<String>): List<ServerEndpoint> =
         parseSourceCatalog(rawLinks)
 
     fun computeAuditSummary(rawLinks: List<String> = FtpLinks.links): CatalogAuditSummary {
@@ -91,4 +177,7 @@ object BuiltInCatalog {
     fun buildDisplayName(host: String, explicitPort: Int?): String {
         return if (explicitPort != null) "$host:$explicitPort" else host
     }
+
+    const val DEFAULT_CURATED_COUNT = 752
+    private const val RAW_JSON_SOURCE_COUNT = 758
 }

@@ -8,6 +8,7 @@ import com.jubayerhossain.bdixtester.core.export.ExportDataset
 import com.jubayerhossain.bdixtester.core.export.ExportFormat
 import com.jubayerhossain.bdixtester.core.model.ServerProtocol
 import com.jubayerhossain.bdixtester.core.model.TestStatus
+import com.jubayerhossain.bdixtester.core.util.ActiveResultMatcher
 import com.jubayerhossain.bdixtester.domain.model.FavoriteInfo
 import com.jubayerhossain.bdixtester.domain.model.ServerEndpoint
 import com.jubayerhossain.bdixtester.domain.model.ServerTestResult
@@ -64,6 +65,7 @@ class FavoritesViewModel(
         val statusFilter = values[5] as TestStatus?
         val protocolFilter = values[6] as ServerProtocol?
 
+        val activeLatest = ActiveResultMatcher.matchActive(endpoints, latest)
         val endpointMap = endpoints.associateBy { it.id }
 
         val favItems = favorites.values
@@ -72,7 +74,7 @@ class FavoritesViewModel(
                 FavoriteServerItem(
                     endpoint = ep,
                     favorite = fav,
-                    latestResult = latest[ep.id]
+                    latestResult = activeLatest[ep.id]
                 )
             }
             .filter { item ->
@@ -162,9 +164,13 @@ class FavoritesViewModel(
 
     fun exportFavorites(format: ExportFormat): String {
         val state = uiState.value
+        val favoriteEndpoints = state.favoriteItems.map { it.endpoint }
         return CatalogExportSerializer.exportEndpoints(
-            endpoints = state.favoriteItems.map { it.endpoint },
-            latestResults = catalogRepository.latestResults.value,
+            endpoints = favoriteEndpoints,
+            latestResults = ActiveResultMatcher.matchActive(
+                favoriteEndpoints,
+                catalogRepository.latestResults.value
+            ),
             favorites = catalogRepository.favorites.value,
             format = format,
             dataset = ExportDataset.FAVORITES

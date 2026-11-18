@@ -6,7 +6,9 @@ import android.content.IntentFilter
 import android.net.Uri
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -59,8 +61,22 @@ class NavigationUiTest {
         composeTestRule.onNodeWithTag("servers_tab_working").assertIsDisplayed()
         composeTestRule.onNodeWithTag("servers_tab_not_tested").assertIsDisplayed()
         composeTestRule.onNodeWithTag("servers_tab_not_working").assertIsDisplayed()
+        val activity = composeTestRule.activity
         composeTestRule.onNodeWithTag("servers_category_bar").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("servers_category_ott").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("servers_category_all").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("servers_category_ftp")
+            .assertIsDisplayed()
+            .assertIsSelected()
+            .assertTextEquals(activity.getString(R.string.servers_bottom_ftp_count, 542))
+        composeTestRule.onNodeWithTag("servers_category_movie")
+            .assertIsDisplayed()
+            .assertTextEquals(activity.getString(R.string.servers_bottom_movie_count, 121))
+        composeTestRule.onNodeWithTag("servers_category_tv")
+            .assertIsDisplayed()
+            .assertTextEquals(activity.getString(R.string.servers_bottom_tv_count, 89))
+        composeTestRule.onNodeWithTag("servers_category_ott")
+            .assertIsDisplayed()
+            .assertTextEquals(activity.getString(R.string.servers_bottom_ott_count, 26))
 
         // Switch to curated Bangladesh OTT Directory (26 verified platforms)
         assertEquals(26, BdOttPlatforms.all.size)
@@ -79,8 +95,8 @@ class NavigationUiTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("ott_card_ott_netflix").assertIsDisplayed()
 
-        // Return to All BDIX servers & toggle Search
-        composeTestRule.onNodeWithTag("servers_category_all").performClick()
+        // Return to FTP BDIX servers & toggle Search
+        composeTestRule.onNodeWithTag("servers_category_ftp").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("servers_search_toggle").performClick()
         composeTestRule.waitForIdle()
@@ -88,14 +104,24 @@ class NavigationUiTest {
         composeTestRule.onNodeWithTag("servers_search_toggle").performClick()
         composeTestRule.waitForIdle()
 
-        // Open Add Custom Server dialog from Servers top bar and save
+        // Open Add Custom Server dialog from Servers top bar, verify FTP/Movies/TV chips, and save
         composeTestRule.onNodeWithTag("servers_add_custom_button").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("custom_server_dialog").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("custom_server_category_ftp_files").assertIsDisplayed().assertIsSelected()
+        composeTestRule.onNodeWithTag("custom_server_category_movies").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("custom_server_category_live_tv").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("custom_server_category_other").assertDoesNotExist()
         composeTestRule.onNodeWithTag("custom_server_name_input").performTextInput("My BDIX Node")
-        composeTestRule.onNodeWithTag("custom_server_url_input").performTextInput("http://10.16.100.244")
+        composeTestRule.onNodeWithTag("custom_server_url_input").performTextInput("http://10.99.99.99")
         composeTestRule.onNodeWithTag("custom_server_save_button").performClick()
-        composeTestRule.waitForIdle()
+        val updatedFtpLabel = activity.getString(R.string.servers_bottom_ftp_count, 543)
+        composeTestRule.waitUntil(timeoutMillis = 5_000L) {
+            composeTestRule.onAllNodes(hasTestTag("servers_category_ftp") and hasText(updatedFtpLabel))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        composeTestRule.onNodeWithTag("servers_category_ftp")
+            .assertTextEquals(updatedFtpLabel)
 
         // Navigate to Saved tab
         composeTestRule.onNodeWithTag("nav_saved").performClick()
@@ -179,7 +205,7 @@ class NavigationUiTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("servers_screen").assertIsDisplayed()
 
-        // Built-in entry #0 ("http://ftpbd.net") under Not Tested opens external browser directly
+        // Built-in entry #0 ("http://103.58.73.6") under Not Tested opens external browser directly
         composeTestRule.onNodeWithTag("servers_tab_not_tested").performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithTag("server_url_link_builtin:0").assertIsDisplayed().performClick()
@@ -192,7 +218,7 @@ class NavigationUiTest {
         val firstIntent = shadowOf(activity).nextStartedActivity
         assertNotNull(firstIntent)
         assertEquals(Intent.ACTION_VIEW, firstIntent.action)
-        assertEquals(Uri.parse("http://ftpbd.net"), firstIntent.data)
+        assertEquals(Uri.parse("http://103.58.73.6"), firstIntent.data)
         assertTrue(firstIntent.categories.contains(Intent.CATEGORY_BROWSABLE))
 
         // Tapping an OTT card also launches external browser directly

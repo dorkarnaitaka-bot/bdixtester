@@ -10,6 +10,7 @@ import com.jubayerhossain.bdixtester.core.model.ScanMode
 import com.jubayerhossain.bdixtester.core.model.ScanScope
 import com.jubayerhossain.bdixtester.core.model.ServerCategory
 import com.jubayerhossain.bdixtester.core.model.TestStatus
+import com.jubayerhossain.bdixtester.core.util.ActiveResultMatcher
 import com.jubayerhossain.bdixtester.data.network.ScanCoordinator
 import com.jubayerhossain.bdixtester.data.preferences.AppSettings
 import com.jubayerhossain.bdixtester.data.preferences.SettingsRepository
@@ -166,9 +167,12 @@ class ScanViewModel(
             }
             ScanScope.FAVORITES -> endpoints.filter { favorites.containsKey(it.id) }
             ScanScope.CUSTOM_SERVERS -> endpoints.filter { it.sourceType == CatalogSourceType.USER_CUSTOM }
-            ScanScope.RETRY_FAILED -> endpoints.filter { ep ->
-                val status = latestResults[ep.id]?.status
-                status == TestStatus.UNREACHABLE || status == TestStatus.TIMED_OUT || status == TestStatus.CANCELLED
+            ScanScope.RETRY_FAILED -> {
+                val activeResults = ActiveResultMatcher.matchActive(endpoints, latestResults)
+                endpoints.filter { ep ->
+                    val status = activeResults[ep.id]?.status
+                    status == TestStatus.UNREACHABLE || status == TestStatus.TIMED_OUT || status == TestStatus.CANCELLED
+                }
             }
         }
     }

@@ -190,7 +190,11 @@
     <string name="servers_bottom_all">All</string>
     <string name="servers_bottom_tv">TV</string>
     <string name="servers_bottom_ftp">FTP</string>
-    <string name="servers_bottom_movie">Movie</string>
+    <string name="servers_bottom_movie">Movies</string>
+    <string name="servers_bottom_ftp_count">FTP (%1$d)</string>
+    <string name="servers_bottom_movie_count">Movies (%1$d)</string>
+    <string name="servers_bottom_tv_count">TV (%1$d)</string>
+    <string name="servers_bottom_ott_count">OTT (%1$d)</string>
     <string name="servers_bottom_search">Search</string>
     <string name="servers_empty_working_desc">No working servers found yet. Tap Start Test below to scan your BDIX network.</string>
     <string name="servers_empty_not_working_desc">No failing servers in this category yet.</string>
@@ -213,6 +217,8 @@
     <string name="servers_open_details_a11y">View diagnostics for %1$s</string>
     <string name="servers_sync_catalog_a11y">Sync remote server catalog</string>
     <string name="servers_latency_chip">%1$d ms</string>
+    <string name="server_badge_ip">IP: %1$s</string>
+    <string name="server_badge_host">Host: %1$s</string>
     <string name="details_open_browser_failed">Unable to launch external browser for this URL.</string>
     <string name="saved_title">Saved Servers</string>
     <string name="history_title">Testing History</string>

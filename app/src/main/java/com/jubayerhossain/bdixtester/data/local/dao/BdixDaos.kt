@@ -35,6 +35,9 @@ interface ServerDao {
     @Query("SELECT * FROM servers WHERE sourceType = 'BUILT_IN' ORDER BY sourceIndex ASC")
     suspend fun getBuiltInServersOrdered(): List<ServerEntity>
 
+    @Query("SELECT * FROM servers")
+    suspend fun getAllServersOnce(): List<ServerEntity>
+
     @Query("SELECT * FROM servers WHERE id = :serverId LIMIT 1")
     suspend fun getServerById(serverId: String): ServerEntity?
 
@@ -53,6 +56,9 @@ interface ServerDao {
     @Upsert
     suspend fun upsertServers(servers: List<ServerEntity>)
 
+    @Query("DELETE FROM servers WHERE sourceType = 'BUILT_IN'")
+    suspend fun deleteAllBuiltInServers()
+
     @Query("DELETE FROM servers WHERE sourceType = 'REMOTE_CATALOG'")
     suspend fun deleteRemoteCatalogServers()
 
@@ -61,6 +67,14 @@ interface ServerDao {
 
     @Query("DELETE FROM servers WHERE sourceType = 'USER_CUSTOM'")
     suspend fun deleteAllCustomServers()
+
+    @Transaction
+    suspend fun syncBuiltInServersAtomically(expectedServers: List<ServerEntity>) {
+        deleteAllBuiltInServers()
+        if (expectedServers.isNotEmpty()) {
+            upsertServers(expectedServers)
+        }
+    }
 
     @Transaction
     suspend fun replaceRemoteCatalogAtomically(remoteServers: List<ServerEntity>) {

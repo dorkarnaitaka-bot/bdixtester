@@ -1139,10 +1139,10 @@ private fun DashboardScreenPreview() {
     BdixTesterTheme {
         DashboardScreen(
             uiState = DashboardUiState(
-                totalServers = 369,
-                testedCount = 369,
+                totalServers = 752,
+                testedCount = 752,
                 reachableCount = 41,
-                failedCount = 328,
+                failedCount = 711,
                 networkSnapshot = NetworkSnapshot(
                     isConnected = true,
                     transportType = TransportType.WIFI,

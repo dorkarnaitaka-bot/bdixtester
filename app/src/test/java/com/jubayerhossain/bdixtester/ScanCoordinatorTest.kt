@@ -21,6 +21,7 @@ import com.jubayerhossain.bdixtester.domain.model.ServerEndpoint
 import com.jubayerhossain.bdixtester.domain.model.ServerTestResult
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -60,6 +61,7 @@ class ScanCoordinatorTest {
 
     @After
     fun tearDown() {
+        runBlocking { repo.closeAndJoin() }
         db.close()
     }
 

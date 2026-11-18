@@ -10,6 +10,7 @@ import com.jubayerhossain.bdixtester.core.model.ServerCategory
 import com.jubayerhossain.bdixtester.core.model.TestStatus
 import com.jubayerhossain.bdixtester.core.network.ConnectivityObserver
 import com.jubayerhossain.bdixtester.core.network.NetworkSnapshot
+import com.jubayerhossain.bdixtester.core.util.ActiveResultMatcher
 import com.jubayerhossain.bdixtester.data.preferences.AppSettings
 import com.jubayerhossain.bdixtester.data.preferences.SettingsRepository
 import com.jubayerhossain.bdixtester.domain.model.CatalogIntegrityReport
@@ -84,23 +85,25 @@ class DashboardViewModel(
         val network = values[8] as NetworkSnapshot
         val scanMode = settings.defaultScanMode
 
+        val activeResults = ActiveResultMatcher.matchActive(endpoints, results)
+
         val categoryCounts = ServerCategory.entries
             .filter { it != ServerCategory.ALL }
             .associateWith { cat -> endpoints.count { it.category == cat } }
 
-        val recent = results.values
+        val recent = activeResults.values
             .sortedByDescending { it.testedAtEpochMs }
             .mapNotNull { res ->
                 endpoints.firstOrNull { it.id == res.serverId }?.let { it to res }
             }
             .take(6)
 
-        val reachableResults = results.values.filter { it.status == TestStatus.REACHABLE }
-        val unreachableCount = results.values.count {
+        val reachableResults = activeResults.values.filter { it.status == TestStatus.REACHABLE }
+        val unreachableCount = activeResults.values.count {
             it.status == TestStatus.UNREACHABLE || it.status == TestStatus.TIMED_OUT
         }
-        val restrictedOrErrorCount = results.values.count { it.status == TestStatus.RESTRICTED }
-        val unsupportedCount = results.values.count { it.status == TestStatus.UNSUPPORTED }
+        val restrictedOrErrorCount = activeResults.values.count { it.status == TestStatus.RESTRICTED }
+        val unsupportedCount = activeResults.values.count { it.status == TestStatus.UNSUPPORTED }
         val avgLatencyMs = reachableResults
             .mapNotNull { it.primaryLatencyMs }
             .takeIf { it.isNotEmpty() }
@@ -116,7 +119,7 @@ class DashboardViewModel(
             remoteCount = endpoints.count { it.sourceType == CatalogSourceType.REMOTE_CATALOG },
             customCount = endpoints.count { it.sourceType == CatalogSourceType.USER_CUSTOM },
             categoryCounts = categoryCounts,
-            testedCount = results.size,
+            testedCount = activeResults.size,
             reachableCount = reachableResults.size,
             failedCount = unreachableCount + restrictedOrErrorCount + unsupportedCount,
             averageReachableLatencyMs = avgLatencyMs,

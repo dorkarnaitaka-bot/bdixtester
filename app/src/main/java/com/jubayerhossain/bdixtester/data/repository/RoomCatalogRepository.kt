@@ -9,7 +9,6 @@ import com.jubayerhossain.bdixtester.core.model.ServerProtocol
 import com.jubayerhossain.bdixtester.core.model.VerificationState
 import com.jubayerhossain.bdixtester.core.validation.UrlParser
 import com.jubayerhossain.bdixtester.data.catalog.BuiltInCatalog
-import com.jubayerhossain.bdixtester.data.catalog.FtpLinks
 import com.jubayerhossain.bdixtester.data.local.BdixDatabase
 import com.jubayerhossain.bdixtester.data.local.entity.FavoriteEntity
 import com.jubayerhossain.bdixtester.data.local.entity.ScanSessionEntity
@@ -25,7 +24,9 @@ import com.jubayerhossain.bdixtester.domain.repository.CatalogRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -40,12 +41,13 @@ import java.util.UUID
 
 class RoomCatalogRepository(
     private val database: BdixDatabase,
-    private val rawBuiltInLinks: List<String> = FtpLinks.links,
+    private val rawBuiltInLinks: List<String>? = null,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val clock: () -> Long = { System.currentTimeMillis() }
 ) : CatalogRepository {
 
-    private val repoScope = CoroutineScope(SupervisorJob() + ioDispatcher)
+    private val repoJob: Job = SupervisorJob()
+    private val repoScope = CoroutineScope(repoJob + ioDispatcher)
     private val initMutex = Mutex()
     private val serverDao = database.serverDao()
     private val favoriteDao = database.favoriteDao()
@@ -75,7 +77,13 @@ class RoomCatalogRepository(
     private val _scanProgress = MutableStateFlow(ScanProgressState())
     override val scanProgress: StateFlow<ScanProgressState> = _scanProgress.asStateFlow()
 
-    private val _auditSummary = MutableStateFlow(BuiltInCatalog.computeAuditSummary(rawBuiltInLinks))
+    private val _auditSummary = MutableStateFlow(
+        if (rawBuiltInLinks == null) {
+            BuiltInCatalog.computeCuratedAuditSummary()
+        } else {
+            BuiltInCatalog.computeAuditSummary(rawBuiltInLinks)
+        }
+    )
     override val auditSummary: StateFlow<CatalogAuditSummary> = _auditSummary.asStateFlow()
 
     override val catalogSyncState: StateFlow<CatalogSyncState> =
@@ -93,13 +101,18 @@ class RoomCatalogRepository(
     override suspend fun ensureInitialized(): CatalogIntegrityReport = withContext(ioDispatcher) {
         initMutex.withLock {
             val now = clock()
-            val expectedSource = BuiltInCatalog.parseSourceCatalog(rawBuiltInLinks)
+            val expectedSource = if (rawBuiltInLinks == null) {
+                BuiltInCatalog.loadCuratedCatalog()
+            } else {
+                BuiltInCatalog.parseSourceCatalog(rawBuiltInLinks)
+            }
 
             database.withTransaction {
-                val existingBuiltIn = serverDao.getBuiltInServersOrdered()
-                if (existingBuiltIn.isEmpty() && expectedSource.isNotEmpty()) {
+                val existingBuiltIn = serverDao.getBuiltInServersOrdered().map { it.toDomain() }
+                val currentIntegrity = compareSourceToDatabase(expectedSource, existingBuiltIn)
+                if (!currentIntegrity.isConsistent && expectedSource.isNotEmpty()) {
                     val entities = expectedSource.map { it.toEntity(nowEpochMs = now) }
-                    serverDao.insertAllStrict(entities)
+                    serverDao.syncBuiltInServersAtomically(entities)
                 }
                 val runningSessions = scanSessionDao.getRunningSessions()
                 if (runningSessions.isNotEmpty()) {
@@ -152,6 +165,7 @@ class RoomCatalogRepository(
         }
         var orderMatches = true
         var exactUrlsMatch = true
+        var metadataMatches = true
         var firstMismatch: String? = null
         for (i in source.indices) {
             val s = source[i]
@@ -168,13 +182,19 @@ class RoomCatalogRepository(
                     firstMismatch = "URL mismatch at $i: expected ${s.originalUrl}, found ${p.originalUrl}"
                 }
             }
+            if (p.name != s.name || p.category != s.category || p.sourceAttribution != s.sourceAttribution) {
+                metadataMatches = false
+                if (firstMismatch == null) {
+                    firstMismatch = "Metadata mismatch at $i: expected ${s.name}/${s.category}, found ${p.name}/${p.category}"
+                }
+            }
         }
         return CatalogIntegrityReport(
             builtInSourceCount = source.size,
             builtInDatabaseCount = persisted.size,
             orderMatches = orderMatches,
             exactUrlsMatch = exactUrlsMatch,
-            isConsistent = orderMatches && exactUrlsMatch,
+            isConsistent = orderMatches && exactUrlsMatch && metadataMatches,
             mismatchDetails = firstMismatch
         )
     }
@@ -264,7 +284,10 @@ class RoomCatalogRepository(
             }
         }
 
-        val effectiveCategory = if (category == ServerCategory.ALL) ServerCategory.OTHER else category
+        val effectiveCategory = when (category) {
+            ServerCategory.ALL, ServerCategory.UNCATEGORIZED -> ServerCategory.FTP_FILES
+            else -> category
+        }
         val effectiveName = name.trim().ifEmpty {
             BuiltInCatalog.buildDisplayName(parsed.host, parsed.explicitPort)
         }
@@ -274,6 +297,18 @@ class RoomCatalogRepository(
         if (existingEntity != null && existingEntity.sourceType != CatalogSourceType.USER_CUSTOM.name) {
             return@withContext Result.failure(
                 IllegalStateException("Built-in or remote catalog entries cannot be overwritten as custom servers.")
+            )
+        }
+
+        val candidateCanonicalKey = UrlParser.canonicalKey(trimmedUrl)
+        val duplicateServer = serverDao.getAllServersOnce().firstOrNull { existingRow ->
+            existingRow.id != id && UrlParser.canonicalKey(existingRow.originalUrl) == candidateCanonicalKey
+        }
+        if (duplicateServer != null) {
+            return@withContext Result.failure(
+                IllegalArgumentException(
+                    "Duplicate server not allowed: already exists as \"${duplicateServer.name}\" (${duplicateServer.originalUrl})."
+                )
             )
         }
 
@@ -352,6 +387,10 @@ class RoomCatalogRepository(
             serverDao.deleteRemoteCatalogServers()
             metadataDao.deleteMetadata(REMOTE_FEED_ID)
         }
+    }
+
+    suspend fun closeAndJoin() {
+        repoJob.cancelAndJoin()
     }
 
     companion object {
