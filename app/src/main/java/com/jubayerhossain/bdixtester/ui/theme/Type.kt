@@ -1,92 +1,36 @@
 package com.jubayerhossain.bdixtester.ui.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
 import com.jubayerhossain.bdixtester.R
 
-@OptIn(ExperimentalTextApi::class)
+// Bundled TTF binaries are static Regular (400). Declaring only FontWeight.Normal allows
+// Android's text renderer to synthesize crisp Medium/SemiBold/Bold weight hierarchy instead
+// of suppressing synthetic emboldening via no-op FontVariation mappings.
 val PlusJakartaSansFamily = FontFamily(
-    Font(
-        resId = R.font.plus_jakarta_sans,
-        weight = FontWeight.Normal,
-        variationSettings = FontVariation.Settings(FontVariation.weight(400))
-    ),
-    Font(
-        resId = R.font.plus_jakarta_sans,
-        weight = FontWeight.Medium,
-        variationSettings = FontVariation.Settings(FontVariation.weight(500))
-    ),
-    Font(
-        resId = R.font.plus_jakarta_sans,
-        weight = FontWeight.SemiBold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(600))
-    ),
-    Font(
-        resId = R.font.plus_jakarta_sans,
-        weight = FontWeight.Bold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(700))
-    )
+    Font(resId = R.font.plus_jakarta_sans, weight = FontWeight.Normal)
 )
 
-@OptIn(ExperimentalTextApi::class)
 val NotoSansBengaliFamily = FontFamily(
-    Font(
-        resId = R.font.noto_sans_bengali,
-        weight = FontWeight.Normal,
-        variationSettings = FontVariation.Settings(FontVariation.weight(400))
-    ),
-    Font(
-        resId = R.font.noto_sans_bengali,
-        weight = FontWeight.Medium,
-        variationSettings = FontVariation.Settings(FontVariation.weight(500))
-    ),
-    Font(
-        resId = R.font.noto_sans_bengali,
-        weight = FontWeight.SemiBold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(600))
-    ),
-    Font(
-        resId = R.font.noto_sans_bengali,
-        weight = FontWeight.Bold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(700))
-    )
+    Font(resId = R.font.noto_sans_bengali, weight = FontWeight.Normal)
 )
 
-@OptIn(ExperimentalTextApi::class)
 val JetBrainsMonoFamily = FontFamily(
-    Font(
-        resId = R.font.jetbrains_mono,
-        weight = FontWeight.Normal,
-        variationSettings = FontVariation.Settings(FontVariation.weight(400))
-    ),
-    Font(
-        resId = R.font.jetbrains_mono,
-        weight = FontWeight.Medium,
-        variationSettings = FontVariation.Settings(FontVariation.weight(500))
-    ),
-    Font(
-        resId = R.font.jetbrains_mono,
-        weight = FontWeight.SemiBold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(600))
-    ),
-    Font(
-        resId = R.font.jetbrains_mono,
-        weight = FontWeight.Bold,
-        variationSettings = FontVariation.Settings(FontVariation.weight(700))
-    )
+    Font(resId = R.font.jetbrains_mono, weight = FontWeight.Normal)
 )
 
 fun buildBdixTypography(
     bodyFontFamily: FontFamily,
-    lineHeightScale: Float = 1f
+    lineHeightScale: Float = 1f,
+    disableLetterSpacing: Boolean = false
 ): Typography {
     fun scaledLineHeight(baseSp: Float) = (baseSp * lineHeightScale).sp
+    fun tracking(baseSp: Float): TextUnit = if (disableLetterSpacing) 0.sp else baseSp.sp
 
     return Typography(
         displaySmall = TextStyle(
@@ -94,93 +38,114 @@ fun buildBdixTypography(
             fontWeight = FontWeight.Bold,
             fontSize = 36.sp,
             lineHeight = scaledLineHeight(44f),
-            letterSpacing = (-0.5).sp
+            letterSpacing = tracking(-0.4f)
         ),
         headlineMedium = TextStyle(
             fontFamily = bodyFontFamily,
             fontWeight = FontWeight.Bold,
-            fontSize = 26.sp,
+            fontSize = 24.sp,
             lineHeight = scaledLineHeight(32f),
-            letterSpacing = (-0.3).sp
+            letterSpacing = tracking(-0.2f)
         ),
         headlineSmall = TextStyle(
             fontFamily = bodyFontFamily,
             fontWeight = FontWeight.SemiBold,
             fontSize = 22.sp,
             lineHeight = scaledLineHeight(28f),
-            letterSpacing = (-0.15).sp
+            letterSpacing = tracking(-0.1f)
         ),
         titleLarge = TextStyle(
             fontFamily = bodyFontFamily,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 19.sp,
-            lineHeight = scaledLineHeight(26f)
+            fontSize = 20.sp,
+            lineHeight = scaledLineHeight(26f),
+            letterSpacing = tracking(0f)
         ),
         titleMedium = TextStyle(
             fontFamily = bodyFontFamily,
             fontWeight = FontWeight.SemiBold,
             fontSize = 16.sp,
             lineHeight = scaledLineHeight(22f),
-            letterSpacing = 0.1.sp
+            letterSpacing = tracking(0.1f)
         ),
         titleSmall = TextStyle(
             fontFamily = bodyFontFamily,
             fontWeight = FontWeight.SemiBold,
             fontSize = 14.sp,
             lineHeight = scaledLineHeight(20f),
-            letterSpacing = 0.1.sp
+            letterSpacing = tracking(0.1f)
         ),
         bodyLarge = TextStyle(
             fontFamily = bodyFontFamily,
             fontWeight = FontWeight.Normal,
             fontSize = 15.sp,
-            lineHeight = scaledLineHeight(22f)
+            lineHeight = scaledLineHeight(22f),
+            letterSpacing = tracking(0f)
         ),
         bodyMedium = TextStyle(
             fontFamily = bodyFontFamily,
             fontWeight = FontWeight.Normal,
             fontSize = 14.sp,
-            lineHeight = scaledLineHeight(20f)
+            lineHeight = scaledLineHeight(20f),
+            letterSpacing = tracking(0f)
         ),
         bodySmall = TextStyle(
             fontFamily = bodyFontFamily,
             fontWeight = FontWeight.Normal,
-            fontSize = 12.sp,
-            lineHeight = scaledLineHeight(16f)
+            fontSize = 12.5.sp,
+            lineHeight = scaledLineHeight(18f),
+            letterSpacing = tracking(0f)
         ),
         labelLarge = TextStyle(
             fontFamily = bodyFontFamily,
             fontWeight = FontWeight.SemiBold,
             fontSize = 14.sp,
             lineHeight = scaledLineHeight(20f),
-            letterSpacing = 0.1.sp
+            letterSpacing = tracking(0.1f)
         ),
         labelMedium = TextStyle(
             fontFamily = bodyFontFamily,
             fontWeight = FontWeight.Medium,
             fontSize = 12.sp,
             lineHeight = scaledLineHeight(16f),
-            letterSpacing = 0.2.sp
+            letterSpacing = tracking(0.15f)
         ),
         labelSmall = TextStyle(
-            fontFamily = JetBrainsMonoFamily,
-            fontWeight = FontWeight.Medium,
+            fontFamily = bodyFontFamily,
+            fontWeight = FontWeight.SemiBold,
             fontSize = 11.sp,
-            lineHeight = 16.sp,
-            letterSpacing = 0.2.sp,
+            lineHeight = scaledLineHeight(16f),
+            letterSpacing = tracking(0.15f),
             fontFeatureSettings = "tnum"
         )
     )
 }
 
-val BdixTypography = buildBdixTypography(PlusJakartaSansFamily, lineHeightScale = 1f)
-val BdixTypographyBengali = buildBdixTypography(NotoSansBengaliFamily, lineHeightScale = 1.18f)
+val BdixTypography = buildBdixTypography(
+    bodyFontFamily = PlusJakartaSansFamily,
+    lineHeightScale = 1f,
+    disableLetterSpacing = false
+)
+
+val BdixTypographyBengali = buildBdixTypography(
+    bodyFontFamily = NotoSansBengaliFamily,
+    lineHeightScale = 1.14f,
+    disableLetterSpacing = true
+)
 
 val MonoUrlStyle = TextStyle(
     fontFamily = JetBrainsMonoFamily,
     fontWeight = FontWeight.Normal,
     fontSize = 12.5.sp,
     lineHeight = 18.sp
+)
+
+val MonoBadgeStyle = TextStyle(
+    fontFamily = JetBrainsMonoFamily,
+    fontWeight = FontWeight.SemiBold,
+    fontSize = 11.sp,
+    lineHeight = 16.sp,
+    fontFeatureSettings = "tnum"
 )
 
 val MonoMetricStyle = TextStyle(

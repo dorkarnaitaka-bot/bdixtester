@@ -1,5 +1,6 @@
 package com.jubayerhossain.bdixtester.ui.components
 
+import android.provider.Settings
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
@@ -36,6 +37,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -43,9 +45,31 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+
+/**
+ * CompositionLocal controlling whether non-essential / infinite animations are suppressed.
+ * Driven by user's in-app Reduce Animations toggle OR Android's global ANIMATOR_DURATION_SCALE == 0f.
+ */
+val LocalReducedMotion = staticCompositionLocalOf { false }
+
+@Composable
+fun rememberReducedMotionEnabled(userReduceAnimations: Boolean): Boolean {
+    val context = LocalContext.current
+    val systemReduced = remember(context) {
+        runCatching {
+            Settings.Global.getFloat(
+                context.contentResolver,
+                Settings.Global.ANIMATOR_DURATION_SCALE,
+                1f
+            ) == 0f
+        }.getOrDefault(false)
+    }
+    return userReduceAnimations || systemReduced
+}
 
 object BdixMotionSpecs {
     val bouncySpring = spring<Float>(
@@ -61,11 +85,13 @@ object BdixMotionSpecs {
 
 /**
  * Tactile spring press scale feedback driven by an [InteractionSource].
+ * Automatically becomes a no-op when [LocalReducedMotion] is enabled.
  */
 fun Modifier.springPressScale(
     interactionSource: InteractionSource,
     pressedScale: Float = 0.96f
 ): Modifier = composed {
+    if (LocalReducedMotion.current) return@composed this
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (isPressed) pressedScale else 1f,
@@ -79,7 +105,8 @@ fun Modifier.springPressScale(
 }
 
 /**
- * Live connection status dot with an expanding soft radar pulse halo when [isLive] is true.
+ * Live connection status dot with an expanding soft radar pulse halo when [isLive] is true
+ * and reduced motion is not active.
  */
 @Composable
 fun PulsingStatusDot(
@@ -88,22 +115,24 @@ fun PulsingStatusDot(
     dotSize: Dp = 8.dp,
     modifier: Modifier = Modifier
 ) {
-    val transition = rememberInfiniteTransition(label = "status_dot_pulse")
-    val pulseProgress by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "pulse_progress"
-    )
+    val reducedMotion = LocalReducedMotion.current
+    val shouldPulse = isLive && !reducedMotion
 
     Box(
         modifier = modifier.size(dotSize * 2.1f),
         contentAlignment = Alignment.Center
     ) {
-        if (isLive) {
+        if (shouldPulse) {
+            val transition = rememberInfiniteTransition(label = "status_dot_pulse")
+            val pulseProgress by transition.animateFloat(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 1800, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Restart
+                ),
+                label = "pulse_progress"
+            )
             Box(
                 modifier = Modifier
                     .size(dotSize)
@@ -126,6 +155,7 @@ fun PulsingStatusDot(
 
 /**
  * Smooth rolling vertical counter for tabular numbers (Hero working count, status tab badges).
+ * Renders instantaneously without vertical slide when [LocalReducedMotion] is active.
  */
 @Composable
 fun RollingCountText(
@@ -134,6 +164,16 @@ fun RollingCountText(
     color: Color,
     modifier: Modifier = Modifier
 ) {
+    if (LocalReducedMotion.current) {
+        Text(
+            text = count.toString(),
+            style = style,
+            color = color,
+            maxLines = 1,
+            modifier = modifier
+        )
+        return
+    }
     AnimatedContent(
         targetState = count,
         transitionSpec = {
@@ -167,6 +207,7 @@ fun AnimatedBookmarkIcon(
     iconSize: Dp = 20.dp,
     modifier: Modifier = Modifier
 ) {
+    val reducedMotion = LocalReducedMotion.current
     val scale = remember { Animatable(1f) }
     val tint by animateColorAsState(
         targetValue = if (isFavorite) {
@@ -174,13 +215,17 @@ fun AnimatedBookmarkIcon(
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },
-        animationSpec = tween(220),
+        animationSpec = tween(if (reducedMotion) 0 else 220),
         label = "bookmark_tint"
     )
 
-    LaunchedEffect(isFavorite) {
-        scale.snapTo(if (isFavorite) 1.32f else 0.86f)
-        scale.animateTo(1f, animationSpec = BdixMotionSpecs.bouncySpring)
+    LaunchedEffect(isFavorite, reducedMotion) {
+        if (reducedMotion) {
+            scale.snapTo(1f)
+        } else {
+            scale.snapTo(if (isFavorite) 1.32f else 0.86f)
+            scale.animateTo(1f, animationSpec = BdixMotionSpecs.bouncySpring)
+        }
     }
 
     Icon(
@@ -206,14 +251,17 @@ fun AnimatedPinIcon(
     iconSize: Dp = 20.dp,
     modifier: Modifier = Modifier
 ) {
+    val reducedMotion = LocalReducedMotion.current
+    val targetRotation = if (isPinned) 0f else -32f
+    val targetScale = if (isPinned) 1.12f else 1f
     val rotation by animateFloatAsState(
-        targetValue = if (isPinned) 0f else -32f,
-        animationSpec = BdixMotionSpecs.bouncySpring,
+        targetValue = targetRotation,
+        animationSpec = if (reducedMotion) tween(0) else BdixMotionSpecs.bouncySpring,
         label = "pin_rotation"
     )
     val scale by animateFloatAsState(
-        targetValue = if (isPinned) 1.12f else 1f,
-        animationSpec = BdixMotionSpecs.bouncySpring,
+        targetValue = if (reducedMotion) 1f else targetScale,
+        animationSpec = if (reducedMotion) tween(0) else BdixMotionSpecs.bouncySpring,
         label = "pin_scale"
     )
     val tint by animateColorAsState(
@@ -222,7 +270,7 @@ fun AnimatedPinIcon(
         } else {
             MaterialTheme.colorScheme.onSurfaceVariant
         },
-        animationSpec = tween(220),
+        animationSpec = tween(if (reducedMotion) 0 else 220),
         label = "pin_tint"
     )
 
@@ -242,13 +290,17 @@ fun AnimatedPinIcon(
 
 /**
  * Gliding diagonal shimmer sheen overlay for gradient pill CTA buttons.
+ * Runs only when [enabled] is true and [LocalReducedMotion] is false.
  */
 @Composable
 fun ShimmerPillOverlay(
     modifier: Modifier = Modifier,
     shimmerColor: Color = Color.White.copy(alpha = 0.28f),
-    durationMillis: Int = 2600
+    durationMillis: Int = 2600,
+    enabled: Boolean = true
 ) {
+    if (!enabled || LocalReducedMotion.current) return
+
     val transition = rememberInfiniteTransition(label = "shimmer_pill")
     val shimmerProgress by transition.animateFloat(
         initialValue = -0.6f,
@@ -281,12 +333,23 @@ fun ShimmerPillOverlay(
 
 /**
  * Gentle floating bob animation for empty-state illustrations.
+ * Renders statically when [LocalReducedMotion] is enabled.
  */
 @Composable
 fun FloatingMotionBox(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
+    if (LocalReducedMotion.current) {
+        Box(
+            modifier = modifier,
+            contentAlignment = Alignment.Center
+        ) {
+            content()
+        }
+        return
+    }
+
     val transition = rememberInfiniteTransition(label = "floating_empty")
     val offsetY by transition.animateFloat(
         initialValue = -5f,

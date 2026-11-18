@@ -44,6 +44,7 @@ import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Link
+import androidx.compose.material.icons.rounded.MotionPhotosOff
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Radar
 import androidx.compose.material.icons.rounded.RestartAlt
@@ -96,6 +97,7 @@ import com.jubayerhossain.bdixtester.core.model.ThemePreference
 import com.jubayerhossain.bdixtester.core.network.NetworkSnapshot
 import com.jubayerhossain.bdixtester.core.network.TransportType
 import com.jubayerhossain.bdixtester.data.catalog.BdOttPlatforms
+import com.jubayerhossain.bdixtester.ui.components.LocalReducedMotion
 import com.jubayerhossain.bdixtester.ui.components.LtrContent
 import com.jubayerhossain.bdixtester.ui.components.PulsingStatusDot
 import com.jubayerhossain.bdixtester.ui.theme.BdixBorder
@@ -131,6 +133,7 @@ fun SettingsScreen(
     onNavigateBack: (() -> Unit)? = null,
     onSelectTheme: (ThemePreference) -> Unit,
     onSelectLanguage: (AppLanguage) -> Unit,
+    onReduceAnimationsChange: (Boolean) -> Unit = {},
     onSelectDefaultScanMode: (ScanMode) -> Unit,
     onMaxConcurrencyChange: (Int) -> Unit,
     onSpeedTestMaxBytesChange: (Long) -> Unit,
@@ -281,6 +284,15 @@ fun SettingsScreen(
                         subtitle = settings.appLanguage.displayLabel,
                         onClick = { activeDialog = ActiveSettingsDialog.LANGUAGE },
                         testTag = "settings_language_row"
+                    )
+                    SettingsRowDivider()
+                    SettingsSwitchRow(
+                        icon = Icons.Rounded.MotionPhotosOff,
+                        title = stringResource(R.string.settings_reduce_animations_title),
+                        subtitle = stringResource(R.string.settings_reduce_animations_subtitle),
+                        checked = settings.reduceAnimations,
+                        onCheckedChange = onReduceAnimationsChange,
+                        testTag = "settings_reduce_animations_switch"
                     )
                 }
             }
@@ -469,16 +481,21 @@ fun SettingsScreen(
                             }
                         }
 
-                        val syncSpinTransition = rememberInfiniteTransition(label = "settings_sync_spin")
-                        val syncAngle by syncSpinTransition.animateFloat(
-                            initialValue = 0f,
-                            targetValue = 360f,
-                            animationSpec = infiniteRepeatable(
-                                animation = tween(durationMillis = 1200, easing = LinearEasing),
-                                repeatMode = RepeatMode.Restart
-                            ),
-                            label = "sync_icon_angle"
-                        )
+                        val reducedMotion = LocalReducedMotion.current
+                        val syncAngle = if (uiState.isSyncing && !reducedMotion) {
+                            val syncSpinTransition = rememberInfiniteTransition(label = "settings_sync_spin")
+                            syncSpinTransition.animateFloat(
+                                initialValue = 0f,
+                                targetValue = 360f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(durationMillis = 1200, easing = LinearEasing),
+                                    repeatMode = RepeatMode.Restart
+                                ),
+                                label = "sync_icon_angle"
+                            ).value
+                        } else {
+                            0f
+                        }
 
                         Button(
                             onClick = { onSyncNowClick(settings.remoteCatalogUrl) },
@@ -501,7 +518,7 @@ fun SettingsScreen(
                                 modifier = Modifier
                                     .size(18.dp)
                                     .graphicsLayer {
-                                        rotationZ = if (uiState.isSyncing) syncAngle else 0f
+                                        rotationZ = syncAngle
                                     }
                             )
                             Spacer(modifier = Modifier.width(BdixSpacing.sm))
@@ -888,9 +905,9 @@ private fun SettingsAppProfileHeaderCard(
                         .background(
                             brush = Brush.linearGradient(
                                 colors = listOf(
-                                    semantic.ringGradientStart,
-                                    semantic.ringGradientMid,
-                                    semantic.ringGradientEnd
+                                    semantic.ctaGradientStart,
+                                    semantic.ctaGradientMid,
+                                    semantic.ctaGradientEnd
                                 )
                             ),
                             shape = RoundedCornerShape(16.dp)
@@ -900,7 +917,7 @@ private fun SettingsAppProfileHeaderCard(
                     Icon(
                         imageVector = Icons.Rounded.Radar,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                        tint = semantic.ctaContent,
                         modifier = Modifier.size(30.dp)
                     )
                 }
@@ -974,7 +991,7 @@ private fun SettingsAppProfileHeaderCard(
                         Text(
                             text = stringResource(R.string.drawer_ip_label, ipDisplay),
                             style = MonoUrlStyle.copy(fontWeight = FontWeight.Medium),
-                            color = MaterialTheme.colorScheme.primary,
+                            color = semantic.ipAccent,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1013,7 +1030,7 @@ private fun SettingsVersionFooter() {
             Text(
                 text = BuildConfig.APPLICATION_ID,
                 style = MonoUrlStyle,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
         }

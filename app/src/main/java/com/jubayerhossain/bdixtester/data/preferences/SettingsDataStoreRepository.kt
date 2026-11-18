@@ -38,6 +38,7 @@ interface SettingsRepository {
     suspend fun setSpeedTestMaxBytes(maxBytes: Long)
     suspend fun setHistoryRetentionDays(days: Int)
     suspend fun setManualNetworkLabel(label: String)
+    suspend fun setReduceAnimations(enabled: Boolean)
     suspend fun resetSettings()
 }
 
@@ -62,6 +63,7 @@ class SettingsDataStoreRepository(
         val SPEED_TEST_MAX_BYTES = longPreferencesKey("speed_test_max_bytes")
         val HISTORY_RETENTION_DAYS = intPreferencesKey("history_retention_days")
         val MANUAL_NETWORK_LABEL = stringPreferencesKey("manual_network_label")
+        val REDUCE_ANIMATIONS = booleanPreferencesKey("reduce_animations")
     }
 
     override val settings: Flow<AppSettings> = dataStore.data
@@ -107,7 +109,8 @@ class SettingsDataStoreRepository(
                     .coerceIn(1L * 1024L * 1024L, AppSettings.MAX_SPEED_TEST_CAP_BYTES),
                 historyRetentionDays = (prefs[Keys.HISTORY_RETENTION_DAYS]
                     ?: AppSettings.DEFAULT_HISTORY_RETENTION_DAYS).coerceIn(1, 365),
-                manualNetworkLabel = prefs[Keys.MANUAL_NETWORK_LABEL].orEmpty()
+                manualNetworkLabel = prefs[Keys.MANUAL_NETWORK_LABEL].orEmpty(),
+                reduceAnimations = prefs[Keys.REDUCE_ANIMATIONS] ?: false
             )
         }
 
@@ -172,6 +175,10 @@ class SettingsDataStoreRepository(
 
     override suspend fun setManualNetworkLabel(label: String) {
         dataStore.edit { it[Keys.MANUAL_NETWORK_LABEL] = label.trim().take(48) }
+    }
+
+    override suspend fun setReduceAnimations(enabled: Boolean) {
+        dataStore.edit { it[Keys.REDUCE_ANIMATIONS] = enabled }
     }
 
     override suspend fun resetSettings() {

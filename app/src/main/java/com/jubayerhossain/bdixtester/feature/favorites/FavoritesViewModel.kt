@@ -28,6 +28,8 @@ data class FavoriteServerItem(
 data class FavoritesUiState(
     val favoriteItems: List<FavoriteServerItem> = emptyList(),
     val historyItems: List<ServerTestResult> = emptyList(),
+    val hasAnyFavorites: Boolean = false,
+    val hasAnyHistory: Boolean = false,
     val searchQuery: String = "",
     val historyStatusFilter: TestStatus? = null,
     val historyProtocolFilter: ServerProtocol? = null
@@ -98,6 +100,8 @@ class FavoritesViewModel(
         FavoritesUiState(
             favoriteItems = favItems,
             historyItems = filteredHistory,
+            hasAnyFavorites = favorites.isNotEmpty(),
+            hasAnyHistory = history.isNotEmpty(),
             searchQuery = values[4] as String,
             historyStatusFilter = statusFilter,
             historyProtocolFilter = protocolFilter
@@ -126,6 +130,12 @@ class FavoritesViewModel(
         }
     }
 
+    fun restoreFavorite(favorite: FavoriteInfo) {
+        viewModelScope.launch {
+            catalogRepository.restoreFavorite(favorite)
+        }
+    }
+
     fun setPinned(serverId: String, pinned: Boolean) {
         viewModelScope.launch {
             catalogRepository.setFavoritePinned(serverId, pinned)
@@ -135,6 +145,12 @@ class FavoritesViewModel(
     fun deleteHistoryEntry(historyId: Long) {
         viewModelScope.launch {
             catalogRepository.deleteHistoryEntry(historyId)
+        }
+    }
+
+    fun restoreHistoryEntry(result: ServerTestResult) {
+        viewModelScope.launch {
+            catalogRepository.restoreHistoryEntry(result)
         }
     }
 

@@ -274,4 +274,41 @@
     <string name="settings_share_app_subtitle">বন্ধুদের সাথে BDIX Tester শেয়ার করুন</string>
     <string name="settings_share_app_message">BDIX Tester ব্যবহার করে দেখুন — আপনার ব্রডব্যান্ড সংযোগে সচল BDIX FTP, মুভি, টিভি সার্ভার এবং বাংলাদেশের ২৬টি OTT প্ল্যাটফর্ম সহজেই খুঁজে নিন!</string>
     <string name="settings_footer_version_build">ভার্সন %1$s  ·  বিল্ড %2$d</string>
+
+    <!-- P1–P3 Precision Diagnostic Minimalism UI/UX Strings -->
+    <string name="settings_reduce_animations_title">অ্যানিমেশন কমান</string>
+    <string name="settings_reduce_animations_subtitle">পালস, শিমার ও স্প্রিং অ্যানিমেশন বন্ধ রাখুন</string>
+    <string name="settings_last_synced_at">সর্বশেষ সিঙ্ক: %1$s</string>
+    <string name="settings_never_synced">এখনো সিঙ্ক করা হয়নি</string>
+    <string name="settings_sync_retry">আবার চেষ্টা করুন</string>
+    <string name="servers_sort_label">সাজান</string>
+    <string name="servers_sort_default">ডিফল্ট ক্রম</string>
+    <string name="servers_sort_fastest">দ্রুততম পিং</string>
+    <string name="servers_sort_name">নাম (A–Z)</string>
+    <string name="servers_copy_url">URL কপি করুন</string>
+    <string name="servers_url_copied">URL কপি হয়েছে: %1$s</string>
+    <string name="servers_diagnostics_title">সার্ভার ডায়াগনস্টিকস</string>
+    <string name="servers_diagnostics_action">ডায়াগনস্টিকস দেখুন</string>
+    <string name="servers_more_actions_a11y">%1$s-এর আরও অপশন</string>
+    <string name="diagnostics_stage_dns">DNS লুকআপ</string>
+    <string name="diagnostics_stage_tcp">TCP সংযোগ</string>
+    <string name="diagnostics_stage_tls">TLS হ্যান্ডশেক</string>
+    <string name="diagnostics_stage_http">HTTP সাড়া</string>
+    <string name="diagnostics_stage_ftp">FTP কন্ট্রোল</string>
+    <string name="diagnostics_http_status">HTTP স্ট্যাটাস</string>
+    <string name="diagnostics_ftp_code">FTP গ্রিটিং</string>
+    <string name="diagnostics_final_url">চূড়ান্ত URL</string>
+    <string name="diagnostics_error_detail">ডায়াগনস্টিক নোট</string>
+    <string name="diagnostics_not_available">প্রযোজ্য নয়</string>
+    <string name="saved_section_pinned">পিন করা</string>
+    <string name="saved_section_all">সংরক্ষিত</string>
+    <string name="saved_removed_snackbar">\"%1$s\" সংরক্ষিত তালিকা থেকে সরানো হয়েছে</string>
+    <string name="history_section_today">আজ</string>
+    <string name="history_section_yesterday">গতকাল</string>
+    <string name="history_section_earlier">আগের</string>
+    <string name="history_deleted_snackbar">\"%1$s\"-এর ইতিহাস মুছে ফেলা হয়েছে</string>
+    <string name="action_undo">পূর্বাবস্থায় ফিরুন</string>
+    <string name="home_mode_caption_quick">কুইক স্ক্যান · ২.৫ সে. বাজেট</string>
+    <string name="home_mode_caption_full">ফুল স্ক্যান · পূর্ণাঙ্গ যাচাই</string>
+    <string name="home_post_scan_summary">%1$dটি সচল · গড় %2$d ms</string>
 </resources>

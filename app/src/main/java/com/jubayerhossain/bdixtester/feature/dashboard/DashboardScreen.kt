@@ -101,6 +101,7 @@ import com.jubayerhossain.bdixtester.core.model.ScanMode
 import com.jubayerhossain.bdixtester.core.network.NetworkSnapshot
 import com.jubayerhossain.bdixtester.core.network.TransportType
 import com.jubayerhossain.bdixtester.ui.components.BdixMotionSpecs
+import com.jubayerhossain.bdixtester.ui.components.LocalReducedMotion
 import com.jubayerhossain.bdixtester.ui.components.LtrContent
 import com.jubayerhossain.bdixtester.ui.components.PulsingStatusDot
 import com.jubayerhossain.bdixtester.ui.components.RollingCountText
@@ -155,16 +156,21 @@ fun DashboardScreen(
         }
     }
 
-    val ambientTransition = rememberInfiniteTransition(label = "home_ambient_canvas")
-    val ambientAlpha by ambientTransition.animateFloat(
-        initialValue = 0.08f,
-        targetValue = 0.16f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3600, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "ambient_aura_alpha"
-    )
+    val reducedMotion = LocalReducedMotion.current
+    val ambientAlpha = if (isScanning && !reducedMotion) {
+        val ambientTransition = rememberInfiniteTransition(label = "home_ambient_canvas")
+        ambientTransition.animateFloat(
+            initialValue = 0.08f,
+            targetValue = 0.16f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 3200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "ambient_aura_alpha"
+        ).value
+    } else {
+        0.10f
+    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -452,16 +458,21 @@ private fun HomeBrandTopBar(
         transportLabel
     }
 
-    val iconSpinTransition = rememberInfiniteTransition(label = "brand_radar_spin")
-    val radarRotation by iconSpinTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = if (isScanning) 1800 else 11000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "brand_radar_angle"
-    )
+    val reducedMotion = LocalReducedMotion.current
+    val radarRotation = if (isScanning && !reducedMotion) {
+        val iconSpinTransition = rememberInfiniteTransition(label = "brand_radar_spin")
+        iconSpinTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1800, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "brand_radar_angle"
+        ).value
+    } else {
+        0f
+    }
 
     Row(
         modifier = Modifier
@@ -541,19 +552,24 @@ private fun PrimaryTestActionButton(
     val pillShape = RoundedCornerShape(50)
 
     val startColor by animateColorAsState(
-        targetValue = if (isScanning) MaterialTheme.colorScheme.error else semantic.ringGradientStart,
+        targetValue = if (isScanning) semantic.stopGradientStart else semantic.ctaGradientStart,
         animationSpec = tween(320),
         label = "cta_start_color"
     )
     val midColor by animateColorAsState(
-        targetValue = if (isScanning) MaterialTheme.colorScheme.error.copy(alpha = 0.9f) else semantic.ringGradientMid,
+        targetValue = if (isScanning) semantic.stopGradientStart else semantic.ctaGradientMid,
         animationSpec = tween(320),
         label = "cta_mid_color"
     )
     val endColor by animateColorAsState(
-        targetValue = if (isScanning) Color(0xFFDC2626) else semantic.ringGradientEnd,
+        targetValue = if (isScanning) semantic.stopGradientEnd else semantic.ctaGradientEnd,
         animationSpec = tween(320),
         label = "cta_end_color"
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (isScanning) semantic.stopContent else semantic.ctaContent,
+        animationSpec = tween(220),
+        label = "cta_content_color"
     )
 
     val gradientBrush = Brush.horizontalGradient(
@@ -572,14 +588,14 @@ private fun PrimaryTestActionButton(
             .shadow(
                 elevation = if (isScanning) 10.dp else 14.dp,
                 shape = pillShape,
-                ambientColor = midColor.copy(alpha = 0.45f),
-                spotColor = midColor.copy(alpha = 0.55f)
+                ambientColor = midColor.copy(alpha = 0.40f),
+                spotColor = midColor.copy(alpha = 0.48f)
             )
             .clip(pillShape)
             .background(brush = gradientBrush)
             .clickable(
                 interactionSource = interactionSource,
-                indication = ripple(color = Color.White.copy(alpha = 0.25f)),
+                indication = ripple(color = contentColor.copy(alpha = 0.22f)),
                 role = Role.Button,
                 onClickLabel = actionLabel,
                 onClick = if (isScanning) onStopClick else onStartClick
@@ -588,11 +604,12 @@ private fun PrimaryTestActionButton(
             .testTag(if (isScanning) "home_stop_test_button" else "home_start_test_button"),
         contentAlignment = Alignment.Center
     ) {
-        // Gliding diagonal light shimmer across the gradient pill
+        // Gliding diagonal light shimmer only while actively scanning and motion is allowed
         ShimmerPillOverlay(
             modifier = Modifier.matchParentSize(),
-            shimmerColor = Color.White.copy(alpha = if (isScanning) 0.16f else 0.28f),
-            durationMillis = if (isScanning) 1700 else 2800
+            shimmerColor = contentColor.copy(alpha = 0.18f),
+            durationMillis = 1700,
+            enabled = isScanning && !LocalReducedMotion.current
         )
 
         AnimatedContent(
@@ -611,7 +628,7 @@ private fun PrimaryTestActionButton(
                 Icon(
                     imageVector = if (scanning) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = contentColor,
                     modifier = Modifier.size(if (scanning) BdixIconSize.md else 24.dp)
                 )
                 Spacer(modifier = Modifier.width(BdixSpacing.sm))
@@ -620,7 +637,7 @@ private fun PrimaryTestActionButton(
                         if (scanning) R.string.home_action_stop else R.string.home_action_start_test
                     ),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
+                    color = contentColor
                 )
             }
         }
@@ -676,87 +693,97 @@ private fun HeroTesterRing(
     val haptic = LocalHapticFeedback.current
     val viewInteractionSource = remember { MutableInteractionSource() }
 
+    val reducedMotion = LocalReducedMotion.current
+    val activeMotion = (isScanning || isStarting) && !reducedMotion
+
     val animatedProgress by animateFloatAsState(
         targetValue = progressFraction.coerceIn(0f, 1f),
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = if (reducedMotion) 0 else 300, easing = FastOutSlowInEasing),
         label = "scan_progress"
     )
 
     val ringBreathingScale by animateFloatAsState(
-        targetValue = if (isScanning) 1.02f else 1f,
-        animationSpec = BdixMotionSpecs.bouncySpring,
+        targetValue = if (activeMotion) 1.02f else 1f,
+        animationSpec = if (reducedMotion) tween(0) else BdixMotionSpecs.bouncySpring,
         label = "scan_ring_scale"
     )
 
-    val infiniteTransition = rememberInfiniteTransition(label = "orbital_radar_motion")
+    // Calm Idle / Energetic Active: allocate zero infinite transitions while idle or when Reduced Motion is active
+    val scanSpinAngle: Float
+    val orbitAngle: Float
+    val tickAngle: Float
+    val sonarWave1: Float
+    val sonarWave2: Float
+    val glowAlpha: Float
 
-    // Main sweep rotation during active scan
-    val scanSpinAngle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "scan_spin_angle"
-    )
-
-    // Slow continuous orbital track & satellite particle rotation
-    val orbitAngle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = if (isScanning) 5500 else 15000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "orbit_angle"
-    )
-
-    // Counter-rotating precision tick ring
-    val tickAngle by infiniteTransition.animateFloat(
-        initialValue = 360f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = if (isScanning) 9000 else 26000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "tick_angle"
-    )
-
-    // Two staggered outward sonar ripple waves
-    val sonarWave1 by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = if (isScanning) 1900 else 3600, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "sonar_wave_1"
-    )
-    val sonarWave2 by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = if (isScanning) 1900 else 3600,
-                delayMillis = if (isScanning) 950 else 1800,
-                easing = FastOutSlowInEasing
+    if (activeMotion) {
+        val infiniteTransition = rememberInfiniteTransition(label = "orbital_radar_motion")
+        scanSpinAngle = infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 2200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
             ),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "sonar_wave_2"
-    )
-
-    // Breathing inner aura alpha
-    val glowAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.14f,
-        targetValue = 0.28f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2400, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "hero_glow_alpha"
-    )
+            label = "scan_spin_angle"
+        ).value
+        orbitAngle = infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 5500, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "orbit_angle"
+        ).value
+        tickAngle = infiniteTransition.animateFloat(
+            initialValue = 360f,
+            targetValue = 0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 9000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "tick_angle"
+        ).value
+        sonarWave1 = infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1900, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "sonar_wave_1"
+        ).value
+        sonarWave2 = infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(
+                    durationMillis = 1900,
+                    delayMillis = 950,
+                    easing = FastOutSlowInEasing
+                ),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "sonar_wave_2"
+        ).value
+        glowAlpha = infiniteTransition.animateFloat(
+            initialValue = 0.16f,
+            targetValue = 0.28f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 2200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "hero_glow_alpha"
+        ).value
+    } else {
+        scanSpinAngle = 0f
+        orbitAngle = 0f
+        tickAngle = 0f
+        sonarWave1 = -1f
+        sonarWave2 = -1f
+        glowAlpha = 0.14f
+    }
 
     val ringColors = remember(semantic) {
         listOf(
@@ -812,16 +839,20 @@ private fun HeroTesterRing(
             val tickOuterRadius = mainRingRadius + 13.dp.toPx()
             val tickInnerRadius = mainRingRadius + 8.dp.toPx()
 
-            // Layer 2: Two staggered expanding sonar pulse waves
-            listOf(sonarWave1, sonarWave2).forEach { wave ->
-                val waveRadius = mainRingRadius + (fullRadius - mainRingRadius) * wave
-                val waveAlpha = (1f - wave) * (if (isScanning) 0.34f else 0.20f)
-                drawCircle(
-                    color = semantic.ringGradientMid.copy(alpha = waveAlpha),
-                    radius = waveRadius,
-                    center = center,
-                    style = Stroke(width = (2.2f - wave * 1.4f).dp.toPx())
-                )
+            // Layer 2: Two staggered expanding sonar pulse waves (active scan only)
+            if (activeMotion) {
+                listOf(sonarWave1, sonarWave2).forEach { wave ->
+                    if (wave >= 0f) {
+                        val waveRadius = mainRingRadius + (fullRadius - mainRingRadius) * wave
+                        val waveAlpha = (1f - wave) * 0.34f
+                        drawCircle(
+                            color = semantic.ringGradientMid.copy(alpha = waveAlpha),
+                            radius = waveRadius,
+                            center = center,
+                            style = Stroke(width = (2.2f - wave * 1.4f).dp.toPx())
+                        )
+                    }
+                }
             }
 
             // Layer 3: Outer rotating dashed orbital track + 3 glowing orbiting particles

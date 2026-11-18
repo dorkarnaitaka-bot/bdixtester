@@ -8,8 +8,8 @@ import androidx.compose.ui.graphics.Color
 val NavyDeep = Color(0xFF041E2D)
 val NavySurface = Color(0xFF0D1722)
 
-// Primary Cyan-Sky diagnostic accents
-val CyanPrimaryLight = Color(0xFF0277B5)
+// Primary Cyan-Sky diagnostic accents (WCAG AA >= 5.26:1 on light surfaces & nav pill)
+val CyanPrimaryLight = Color(0xFF03669C)
 val CyanPrimaryContainerLight = Color(0xFFD6EEFF)
 val CyanPrimaryDark = Color(0xFF38BDF8)
 val CyanPrimaryContainerDark = Color(0xFF0C3B57)
@@ -26,8 +26,8 @@ val SlateTertiaryContainerLight = Color(0xFFE1EAF2)
 val SlateTertiaryDark = Color(0xFF9FB0C4)
 val SlateTertiaryContainerDark = Color(0xFF26384B)
 
-// Error / Destructive semantic palette
-val ErrorLight = Color(0xFFDC2626)
+// Error / Destructive semantic palette (WCAG AA >= 4.70:1 on errorContainer)
+val ErrorLight = Color(0xFFC81E1E)
 val ErrorContainerLight = Color(0xFFFEE2E2)
 val OnErrorContainerLight = Color(0xFF7F1D1D)
 val ErrorDark = Color(0xFFF87171)
@@ -75,22 +75,38 @@ data class BdixSemanticColors(
     val ringGradientStart: Color,
     val ringGradientMid: Color,
     val ringGradientEnd: Color,
-    val ringTrack: Color
+    val ringTrack: Color,
+    val ipAccent: Color,
+    val ctaGradientStart: Color,
+    val ctaGradientMid: Color,
+    val ctaGradientEnd: Color,
+    val ctaContent: Color,
+    val stopGradientStart: Color,
+    val stopGradientEnd: Color,
+    val stopContent: Color
 )
 
 val LightSemanticColors = BdixSemanticColors(
-    reachable = Color(0xFF059669),
+    reachable = Color(0xFF047857),
     reachableContainer = Color(0xFFD1FAE5),
-    restricted = Color(0xFFD97706),
+    restricted = Color(0xFFB45309),
     restrictedContainer = Color(0xFFFEF3C7),
-    unreachable = Color(0xFFDC2626),
+    unreachable = Color(0xFFC81E1E),
     unreachableContainer = Color(0xFFFEE2E2),
     neutral = Color(0xFF475A6E),
     neutralContainer = Color(0xFFE2EBF3),
     ringGradientStart = Color(0xFF06B6D4),
     ringGradientMid = Color(0xFF0284C7),
     ringGradientEnd = Color(0xFF2563EB),
-    ringTrack = Color(0xFFDCE6F0)
+    ringTrack = Color(0xFFDCE6F0),
+    ipAccent = Color(0xFF035E91),
+    ctaGradientStart = Color(0xFF0369A1),
+    ctaGradientMid = Color(0xFF105BBC),
+    ctaGradientEnd = Color(0xFF1D4ED8),
+    ctaContent = Color.White,
+    stopGradientStart = Color(0xFFC81E1E),
+    stopGradientEnd = Color(0xFF991B1B),
+    stopContent = Color.White
 )
 
 val DarkSemanticColors = BdixSemanticColors(
@@ -105,7 +121,15 @@ val DarkSemanticColors = BdixSemanticColors(
     ringGradientStart = Color(0xFF22D3EE),
     ringGradientMid = Color(0xFF38BDF8),
     ringGradientEnd = Color(0xFF3B82F6),
-    ringTrack = Color(0xFF182A3C)
+    ringTrack = Color(0xFF182A3C),
+    ipAccent = CyanPrimaryDark,
+    ctaGradientStart = Color(0xFF22D3EE),
+    ctaGradientMid = Color(0xFF38BDF8),
+    ctaGradientEnd = Color(0xFF3B82F6),
+    ctaContent = NavyDeep,
+    stopGradientStart = Color(0xFFB91C1C),
+    stopGradientEnd = Color(0xFF991B1B),
+    stopContent = Color.White
 )
 
 val LocalBdixSemanticColors = staticCompositionLocalOf { DarkSemanticColors }

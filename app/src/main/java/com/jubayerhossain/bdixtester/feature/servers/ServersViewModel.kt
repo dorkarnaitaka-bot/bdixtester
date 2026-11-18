@@ -155,9 +155,11 @@ class ServersViewModel(
                     ServerSortOrder.NAME_ASC -> list.sortedBy { it.name.lowercase() }
                     ServerSortOrder.CATEGORY -> list.sortedBy { ServerDisplayClassifier.displayLabel(it) }
                     ServerSortOrder.PROTOCOL -> list.sortedBy { it.protocol.displayLabel }
-                    ServerSortOrder.LATENCY -> list.sortedBy {
-                        results[it.id]?.primaryLatencyMs ?: Long.MAX_VALUE
-                    }
+                    ServerSortOrder.LATENCY -> list.sortedWith(
+                        compareBy<ServerEndpoint> { endpoint ->
+                            results[endpoint.id]?.primaryLatencyMs?.takeIf { it >= 0L } ?: Long.MAX_VALUE
+                        }.thenBy { it.name.lowercase() }
+                    )
                 }
             }
 

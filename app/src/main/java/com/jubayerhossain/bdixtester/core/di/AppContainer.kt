@@ -81,6 +81,11 @@ class AppContainer(context: Context) {
         .distinctUntilChanged()
         .stateIn(appScope, SharingStarted.Eagerly, AppLanguage.SYSTEM)
 
+    val reduceAnimations: StateFlow<Boolean> = appSettings
+        .map { it.reduceAnimations }
+        .distinctUntilChanged()
+        .stateIn(appScope, SharingStarted.Eagerly, false)
+
     fun initializeOnStartup() {
         appScope.launch {
             catalogRepository.ensureInitialized()

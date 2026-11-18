@@ -75,6 +75,10 @@ class SettingsViewModel(
         viewModelScope.launch { settingsRepo.setAppLanguage(language) }
     }
 
+    fun setReduceAnimations(enabled: Boolean) {
+        viewModelScope.launch { settingsRepo.setReduceAnimations(enabled) }
+    }
+
     fun selectDefaultScanMode(mode: ScanMode) {
         viewModelScope.launch { settingsRepo.setDefaultScanMode(mode) }
     }

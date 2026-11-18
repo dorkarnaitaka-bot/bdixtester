@@ -79,9 +79,42 @@ class InMemoryCatalogRepository(
     override fun observeHistoryForServer(serverId: String): Flow<List<ServerTestResult>> =
         _history.map { list -> list.filter { it.serverId == serverId } }
 
-    override suspend fun toggleFavorite(serverId: String) = Unit
-    override suspend fun setFavoritePinned(serverId: String, pinned: Boolean) = Unit
-    override suspend fun clearAllFavorites() = Unit
+    override suspend fun toggleFavorite(serverId: String) {
+        val current = _favorites.value.toMutableMap()
+        if (current.containsKey(serverId)) {
+            current.remove(serverId)
+        } else {
+            current[serverId] = FavoriteInfo(
+                serverId = serverId,
+                isPinned = false,
+                displayOrder = 0,
+                addedAtEpochMs = System.currentTimeMillis(),
+                note = null
+            )
+        }
+        _favorites.value = current
+    }
+
+    override suspend fun restoreFavorite(favorite: FavoriteInfo) {
+        _favorites.value = _favorites.value + (favorite.serverId to favorite)
+    }
+
+    override suspend fun setFavoritePinned(serverId: String, pinned: Boolean) {
+        val existing = _favorites.value[serverId]
+        val updated = existing?.copy(isPinned = pinned) ?: FavoriteInfo(
+            serverId = serverId,
+            isPinned = pinned,
+            displayOrder = 0,
+            addedAtEpochMs = System.currentTimeMillis(),
+            note = null
+        )
+        _favorites.value = _favorites.value + (serverId to updated)
+    }
+
+    override suspend fun clearAllFavorites() {
+        _favorites.value = emptyMap()
+    }
+
     override suspend fun saveCustomServer(
         existingId: String?,
         name: String,
@@ -92,9 +125,33 @@ class InMemoryCatalogRepository(
 
     override suspend fun deleteCustomServer(serverId: String) = Unit
     override suspend fun deleteAllCustomServers() = Unit
-    override suspend fun recordTestResults(results: List<ServerTestResult>) = Unit
-    override suspend fun deleteHistoryEntry(historyId: Long) = Unit
-    override suspend fun clearAllHistory() = Unit
+
+    override suspend fun recordTestResults(results: List<ServerTestResult>) {
+        if (results.isEmpty()) return
+        val nextLatest = _latestResults.value.toMutableMap()
+        results.forEach { nextLatest[it.serverId] = it }
+        _latestResults.value = nextLatest
+        _history.value = (results + _history.value).sortedByDescending { it.testedAtEpochMs }
+    }
+
+    override suspend fun deleteHistoryEntry(historyId: Long) {
+        _history.value = _history.value.filterNot { it.historyId == historyId }
+    }
+
+    override suspend fun restoreHistoryEntry(result: ServerTestResult) {
+        val withoutDup = _history.value.filterNot { it.historyId == result.historyId }
+        _history.value = (withoutDup + result).sortedByDescending { it.testedAtEpochMs }
+    }
+
+    override suspend fun clearAllHistory() {
+        _history.value = emptyList()
+        _latestResults.value = emptyMap()
+    }
+
     override suspend fun pruneExpiredHistory(retentionDays: Int) = Unit
-    override suspend fun resetAllLocalUserData() = Unit
+    override suspend fun resetAllLocalUserData() {
+        _favorites.value = emptyMap()
+        _history.value = emptyList()
+        _latestResults.value = emptyMap()
+    }
 }

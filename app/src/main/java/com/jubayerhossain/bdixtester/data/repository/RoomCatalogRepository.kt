@@ -204,6 +204,18 @@ class RoomCatalogRepository(
         }
     }
 
+    override suspend fun restoreFavorite(favorite: FavoriteInfo) = withContext(ioDispatcher) {
+        favoriteDao.upsertFavorite(
+            FavoriteEntity(
+                serverId = favorite.serverId,
+                isPinned = favorite.isPinned,
+                displayOrder = favorite.displayOrder,
+                addedAtEpochMs = favorite.addedAtEpochMs,
+                note = favorite.note
+            )
+        )
+    }
+
     override suspend fun setFavoritePinned(serverId: String, pinned: Boolean) = withContext(ioDispatcher) {
         val existing = favoriteDao.getFavorite(serverId)
         val now = clock()
@@ -315,6 +327,10 @@ class RoomCatalogRepository(
 
     override suspend fun deleteHistoryEntry(historyId: Long) = withContext(ioDispatcher) {
         historyDao.deleteHistoryById(historyId)
+    }
+
+    override suspend fun restoreHistoryEntry(result: ServerTestResult) = withContext(ioDispatcher) {
+        historyDao.insertHistoryBatch(listOf(result.toEntity()))
     }
 
     override suspend fun clearAllHistory() = withContext(ioDispatcher) {

@@ -274,4 +274,41 @@
     <string name="settings_share_app_subtitle">Recommend BDIX Tester to friends</string>
     <string name="settings_share_app_message">Try BDIX Tester — find fast working BDIX FTP, Movie, and TV servers plus 26 Bangladesh OTT platforms right from your broadband connection!</string>
     <string name="settings_footer_version_build">Version %1$s  ·  Build %2$d</string>
+
+    <!-- P1–P3 Precision Diagnostic Minimalism UI/UX Strings -->
+    <string name="settings_reduce_animations_title">Reduce Animations</string>
+    <string name="settings_reduce_animations_subtitle">Disable pulsing, shimmer, and spring effects</string>
+    <string name="settings_last_synced_at">Last synced: %1$s</string>
+    <string name="settings_never_synced">Not synced yet</string>
+    <string name="settings_sync_retry">Retry Sync</string>
+    <string name="servers_sort_label">Sort</string>
+    <string name="servers_sort_default">Default Order</string>
+    <string name="servers_sort_fastest">Fastest Ping</string>
+    <string name="servers_sort_name">Name (A–Z)</string>
+    <string name="servers_copy_url">Copy URL</string>
+    <string name="servers_url_copied">Copied URL: %1$s</string>
+    <string name="servers_diagnostics_title">Server Diagnostics</string>
+    <string name="servers_diagnostics_action">View Diagnostics</string>
+    <string name="servers_more_actions_a11y">More actions for %1$s</string>
+    <string name="diagnostics_stage_dns">DNS Lookup</string>
+    <string name="diagnostics_stage_tcp">TCP Connect</string>
+    <string name="diagnostics_stage_tls">TLS Handshake</string>
+    <string name="diagnostics_stage_http">HTTP Response</string>
+    <string name="diagnostics_stage_ftp">FTP Control</string>
+    <string name="diagnostics_http_status">HTTP Status</string>
+    <string name="diagnostics_ftp_code">FTP Greeting</string>
+    <string name="diagnostics_final_url">Final URL</string>
+    <string name="diagnostics_error_detail">Diagnostic Note</string>
+    <string name="diagnostics_not_available">N/A</string>
+    <string name="saved_section_pinned">Pinned</string>
+    <string name="saved_section_all">Saved</string>
+    <string name="saved_removed_snackbar">Removed \"%1$s\" from saved</string>
+    <string name="history_section_today">Today</string>
+    <string name="history_section_yesterday">Yesterday</string>
+    <string name="history_section_earlier">Earlier</string>
+    <string name="history_deleted_snackbar">Deleted history entry for \"%1$s\"</string>
+    <string name="action_undo">Undo</string>
+    <string name="home_mode_caption_quick">Quick Scan · 2.5s budget</string>
+    <string name="home_mode_caption_full">Full Scan · Complete check</string>
+    <string name="home_post_scan_summary">%1$d working · Avg %2$d ms</string>
 </resources>

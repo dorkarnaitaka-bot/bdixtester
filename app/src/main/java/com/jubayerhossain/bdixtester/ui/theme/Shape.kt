@@ -34,3 +34,19 @@ object BdixBorder {
     val accent = 1.5.dp
     val hero = 2.dp
 }
+
+object BdixCardShapes {
+    val chip = RoundedCornerShape(8.dp)
+    val iconSquircle = RoundedCornerShape(12.dp)
+    val input = RoundedCornerShape(14.dp)
+    val richCard = RoundedCornerShape(20.dp)
+    val profileHeader = RoundedCornerShape(24.dp)
+    val pill = RoundedCornerShape(50)
+}
+
+object BdixElevation {
+    val flat = 0.dp
+    val bar = 2.dp
+    val card = 2.dp
+    val modal = 6.dp
+}

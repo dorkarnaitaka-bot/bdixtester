@@ -27,6 +27,7 @@ interface CatalogRepository {
     fun observeHistoryForServer(serverId: String): Flow<List<ServerTestResult>>
 
     suspend fun toggleFavorite(serverId: String)
+    suspend fun restoreFavorite(favorite: FavoriteInfo)
     suspend fun setFavoritePinned(serverId: String, pinned: Boolean)
     suspend fun clearAllFavorites()
 
@@ -43,6 +44,7 @@ interface CatalogRepository {
 
     suspend fun recordTestResults(results: List<ServerTestResult>)
     suspend fun deleteHistoryEntry(historyId: Long)
+    suspend fun restoreHistoryEntry(result: ServerTestResult)
     suspend fun clearAllHistory()
     suspend fun pruneExpiredHistory(retentionDays: Int)
     suspend fun resetAllLocalUserData()

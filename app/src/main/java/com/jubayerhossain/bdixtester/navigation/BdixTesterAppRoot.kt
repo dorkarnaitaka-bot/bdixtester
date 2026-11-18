@@ -1,6 +1,8 @@
 package com.jubayerhossain.bdixtester.navigation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -72,6 +74,7 @@ import com.jubayerhossain.bdixtester.feature.settings.SettingsScreen
 import com.jubayerhossain.bdixtester.feature.settings.SettingsViewModel
 import com.jubayerhossain.bdixtester.ui.components.BdixMotionSpecs
 import com.jubayerhossain.bdixtester.ui.components.CustomServerDialog
+import com.jubayerhossain.bdixtester.ui.components.LocalReducedMotion
 import com.jubayerhossain.bdixtester.ui.theme.BdixIconSize
 import kotlinx.coroutines.launch
 
@@ -175,23 +178,37 @@ fun BdixTesterAppRoot(
         }
     }
 
+    val reducedMotion = LocalReducedMotion.current
+
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val useNavigationRail = maxWidth >= 840.dp
+        val useNavigationRail = maxWidth >= 600.dp
 
         val navHostContent: @Composable (Modifier) -> Unit = { contentModifier ->
             NavHost(
                 navController = navController,
                 startDestination = BdixRoutes.HOME,
                 enterTransition = {
-                    fadeIn(animationSpec = tween(220)) +
-                        slideInVertically(animationSpec = tween(240)) { it / 32 }
+                    if (reducedMotion) {
+                        EnterTransition.None
+                    } else {
+                        fadeIn(animationSpec = tween(220)) +
+                            slideInVertically(animationSpec = tween(220)) { it / 32 }
+                    }
                 },
-                exitTransition = { fadeOut(animationSpec = tween(160)) },
+                exitTransition = {
+                    if (reducedMotion) ExitTransition.None else fadeOut(animationSpec = tween(160))
+                },
                 popEnterTransition = {
-                    fadeIn(animationSpec = tween(220)) +
-                        slideInVertically(animationSpec = tween(240)) { it / 32 }
+                    if (reducedMotion) {
+                        EnterTransition.None
+                    } else {
+                        fadeIn(animationSpec = tween(220)) +
+                            slideInVertically(animationSpec = tween(220)) { it / 32 }
+                    }
                 },
-                popExitTransition = { fadeOut(animationSpec = tween(160)) },
+                popExitTransition = {
+                    if (reducedMotion) ExitTransition.None else fadeOut(animationSpec = tween(160))
+                },
                 modifier = contentModifier.fillMaxSize()
             ) {
                 composable(BdixRoutes.HOME) {
@@ -261,6 +278,7 @@ fun BdixTesterAppRoot(
                         uiState = settingsUiState,
                         onSelectTheme = settingsViewModel::selectTheme,
                         onSelectLanguage = settingsViewModel::selectLanguage,
+                        onReduceAnimationsChange = settingsViewModel::setReduceAnimations,
                         onSelectDefaultScanMode = settingsViewModel::selectDefaultScanMode,
                         onMaxConcurrencyChange = settingsViewModel::setMaxConcurrency,
                         onSpeedTestMaxBytesChange = settingsViewModel::setSpeedTestMaxBytes,
@@ -379,12 +397,13 @@ private fun BdixBottomNavigationBar(
             unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
+        val reducedMotion = LocalReducedMotion.current
         TopLevelDestination.entries.forEach { destination ->
             val selected = activeRoute == destination.route
             val label = stringResource(destination.labelRes)
             val iconScale by animateFloatAsState(
-                targetValue = if (selected) 1.14f else 1f,
-                animationSpec = BdixMotionSpecs.bouncySpring,
+                targetValue = if (selected && !reducedMotion) 1.12f else 1f,
+                animationSpec = if (reducedMotion) tween(0) else BdixMotionSpecs.bouncySpring,
                 label = "nav_bar_icon_scale_${destination.route}"
             )
             NavigationBarItem(
@@ -442,12 +461,13 @@ private fun BdixNavigationRail(
             unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
             unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        val reducedMotion = LocalReducedMotion.current
         TopLevelDestination.entries.forEach { destination ->
             val selected = activeRoute == destination.route
             val label = stringResource(destination.labelRes)
             val iconScale by animateFloatAsState(
-                targetValue = if (selected) 1.14f else 1f,
-                animationSpec = BdixMotionSpecs.bouncySpring,
+                targetValue = if (selected && !reducedMotion) 1.12f else 1f,
+                animationSpec = if (reducedMotion) tween(0) else BdixMotionSpecs.bouncySpring,
                 label = "nav_rail_icon_scale_${destination.route}"
             )
             NavigationRailItem(

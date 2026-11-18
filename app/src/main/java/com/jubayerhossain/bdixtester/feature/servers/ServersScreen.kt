@@ -414,7 +414,7 @@ fun ServersScreen(
                                 selectedBorderColor = MaterialTheme.colorScheme.primary
                             ),
                             modifier = Modifier
-                                .heightIn(min = 40.dp)
+                                .heightIn(min = 48.dp)
                                 .testTag("ott_region_${filter.name.lowercase()}")
                         )
                     }

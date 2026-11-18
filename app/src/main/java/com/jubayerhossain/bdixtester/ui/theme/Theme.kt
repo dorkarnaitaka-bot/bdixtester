@@ -13,6 +13,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import com.jubayerhossain.bdixtester.core.model.ThemePreference
+import com.jubayerhossain.bdixtester.ui.components.LocalReducedMotion
+import com.jubayerhossain.bdixtester.ui.components.rememberReducedMotionEnabled
 
 private val LightColorScheme = lightColorScheme(
     primary = CyanPrimaryLight,
@@ -82,6 +84,7 @@ private val DarkColorScheme = darkColorScheme(
 fun BdixTesterTheme(
     themePreference: ThemePreference = ThemePreference.SYSTEM,
     dynamicColor: Boolean = false,
+    reduceAnimations: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val useDarkTheme = when (themePreference) {
@@ -106,8 +109,12 @@ fun BdixTesterTheme(
     } else {
         BdixTypography
     }
+    val effectiveReducedMotion = rememberReducedMotionEnabled(userReduceAnimations = reduceAnimations)
 
-    CompositionLocalProvider(LocalBdixSemanticColors provides semanticColors) {
+    CompositionLocalProvider(
+        LocalBdixSemanticColors provides semanticColors,
+        LocalReducedMotion provides effectiveReducedMotion
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = activeTypography,

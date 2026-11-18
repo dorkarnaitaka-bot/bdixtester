@@ -18,7 +18,8 @@ data class AppSettings(
     val allowCrossOriginRemotePayload: Boolean = false,
     val speedTestMaxBytes: Long = DEFAULT_SPEED_TEST_MAX_BYTES,
     val historyRetentionDays: Int = DEFAULT_HISTORY_RETENTION_DAYS,
-    val manualNetworkLabel: String = ""
+    val manualNetworkLabel: String = "",
+    val reduceAnimations: Boolean = false
 ) {
     companion object {
         const val DEFAULT_FULL_CONNECT_TIMEOUT_MS = 5_000
