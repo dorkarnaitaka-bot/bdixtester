@@ -317,4 +317,27 @@
     <string name="home_mode_caption_quick">Quick Scan · 2.5s budget</string>
     <string name="home_mode_caption_full">Full Scan · Complete check</string>
     <string name="home_post_scan_summary">%1$d working · Avg %2$d ms</string>
+
+    <!-- Four Curated Color Themes & Preview Cards -->
+    <string name="settings_color_theme_section_title">Color Theme</string>
+    <string name="settings_color_theme_section_subtitle">Choose one of four curated Light &amp; Dark palettes</string>
+    <string name="settings_appearance_mode_title">Appearance Mode</string>
+    <string name="settings_appearance_mode_dialog_title">Choose Appearance Mode</string>
+    <string name="settings_appearance_system">System Default</string>
+    <string name="settings_appearance_light">Light</string>
+    <string name="settings_appearance_dark">Dark</string>
+    <string name="theme_preset_midnight_indigo">Midnight Indigo</string>
+    <string name="theme_preset_midnight_indigo_desc">Navy &amp; indigo · Modern precision</string>
+    <string name="theme_preset_graphite_amber">Graphite &amp; Amber</string>
+    <string name="theme_preset_graphite_amber_desc">Charcoal &amp; amber · Technical instrument</string>
+    <string name="theme_preset_deep_emerald">Deep Emerald</string>
+    <string name="theme_preset_deep_emerald_desc">Forest &amp; teal · Calm clarity</string>
+    <string name="theme_preset_warm_premium">Warm Premium</string>
+    <string name="theme_preset_warm_premium_desc">Ivory &amp; burgundy · Editorial refinement</string>
+    <string name="theme_preview_selected">Active</string>
+    <string name="theme_preview_sample_card_title">BDIX Media Node</string>
+    <string name="theme_preview_sample_badge">Reachable · 4 ms</string>
+    <string name="theme_preview_primary_btn">Scan</string>
+    <string name="theme_preview_secondary_btn">Servers</string>
+    <string name="theme_preview_card_a11y">%1$s theme preset, %2$s</string>
 </resources>

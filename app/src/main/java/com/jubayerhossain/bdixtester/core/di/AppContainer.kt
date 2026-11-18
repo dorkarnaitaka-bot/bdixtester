@@ -2,6 +2,7 @@ package com.jubayerhossain.bdixtester.core.di
 
 import android.content.Context
 import com.jubayerhossain.bdixtester.core.model.AppLanguage
+import com.jubayerhossain.bdixtester.core.model.AppThemePreset
 import com.jubayerhossain.bdixtester.core.model.ThemePreference
 import com.jubayerhossain.bdixtester.core.network.AndroidConnectivityObserver
 import com.jubayerhossain.bdixtester.core.network.ConnectivityObserver
@@ -70,6 +71,11 @@ class AppContainer(context: Context) {
 
     val appSettings: StateFlow<AppSettings> = settingsRepository.settings
         .stateIn(appScope, SharingStarted.Eagerly, AppSettings())
+
+    val themePreset: StateFlow<AppThemePreset> = appSettings
+        .map { it.themePreset }
+        .distinctUntilChanged()
+        .stateIn(appScope, SharingStarted.Eagerly, AppThemePreset.MIDNIGHT_INDIGO)
 
     val themePreference: StateFlow<ThemePreference> = appSettings
         .map { it.themePreference }

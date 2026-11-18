@@ -1,4 +1,6 @@
-# BDIX Tester — Complete UI/UX Implementation Audit (Phase 1)
+# BDIX Tester — Complete UI/UX Implementation Audit (Phase 1 — Superseded Color Context)
+
+> **Historical Notice:** This Phase 1 audit predates the **Complete Color System Replacement**. The previous Cyan-Sky palette (`LightSemanticColors`, `DarkSemanticColors`, `NavyDeep`, etc.) documented below has been **permanently deleted** from the project. See `docs/design/color-system-specification.md`, `docs/design/light-dark-theme-matrix.md`, and `docs/design/old-theme-removal-report.md` for the active four-theme specification (`Midnight Indigo`, `Graphite & Amber`, `Deep Emerald`, `Warm Premium`).
 
 **Audit Date:** 2026-11-18  
 **Project:** `com.jubayerhossain.bdixtester` (Kotlin + Jetpack Compose + Material Design 3 + Room + DataStore + WorkManager)  

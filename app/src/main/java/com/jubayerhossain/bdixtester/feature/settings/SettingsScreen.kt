@@ -92,6 +92,7 @@ import androidx.compose.ui.unit.dp
 import com.jubayerhossain.bdixtester.BuildConfig
 import com.jubayerhossain.bdixtester.R
 import com.jubayerhossain.bdixtester.core.model.AppLanguage
+import com.jubayerhossain.bdixtester.core.model.AppThemePreset
 import com.jubayerhossain.bdixtester.core.model.ScanMode
 import com.jubayerhossain.bdixtester.core.model.ThemePreference
 import com.jubayerhossain.bdixtester.core.network.NetworkSnapshot
@@ -105,6 +106,7 @@ import com.jubayerhossain.bdixtester.ui.theme.BdixSpacing
 import com.jubayerhossain.bdixtester.ui.theme.BdixTesterTheme
 import com.jubayerhossain.bdixtester.ui.theme.LocalBdixSemanticColors
 import com.jubayerhossain.bdixtester.ui.theme.MonoUrlStyle
+import com.jubayerhossain.bdixtester.ui.theme.resolveUseDarkTheme
 import kotlin.math.roundToInt
 
 private const val FACEBOOK_COMMUNITY_URL = "https://www.facebook.com/search/top/?q=BDIX%20Tester"
@@ -131,6 +133,7 @@ private enum class ActiveSettingsDialog {
 fun SettingsScreen(
     uiState: SettingsUiState,
     onNavigateBack: (() -> Unit)? = null,
+    onSelectThemePreset: (AppThemePreset) -> Unit = {},
     onSelectTheme: (ThemePreference) -> Unit,
     onSelectLanguage: (AppLanguage) -> Unit,
     onReduceAnimationsChange: (Boolean) -> Unit = {},
@@ -268,12 +271,12 @@ fun SettingsScreen(
             item {
                 SettingsSectionHeader(title = stringResource(R.string.settings_appearance_section))
             }
-            item {
+            item(key = "settings_appearance_group") {
                 SettingsGroupCard {
                     SettingsNavigationRow(
                         icon = Icons.Rounded.DarkMode,
-                        title = stringResource(R.string.settings_theme_title),
-                        subtitle = settings.themePreference.displayLabel,
+                        title = stringResource(R.string.settings_appearance_mode_title),
+                        subtitle = "${presetTitle(settings.themePreset)} · ${appearanceLabel(settings.themePreference)}",
                         onClick = { activeDialog = ActiveSettingsDialog.THEME },
                         testTag = "settings_theme_row"
                     )
@@ -297,6 +300,23 @@ fun SettingsScreen(
                 }
             }
 
+            item(key = "settings_color_theme_header") {
+                SettingsSectionHeader(title = stringResource(R.string.settings_color_theme_section_title))
+            }
+
+            AppThemePreset.entries.forEach { preset ->
+                item(key = "theme_preset_${preset.name}") {
+                    val previewDarkMode = resolveUseDarkTheme(settings.themePreference)
+                    ThemePresetPreviewCard(
+                        preset = preset,
+                        isSelected = preset == settings.themePreset,
+                        previewDarkMode = previewDarkMode,
+                        onClick = { onSelectThemePreset(preset) },
+                        modifier = Modifier.widthIn(max = 720.dp)
+                    )
+                }
+            }
+
             // 2. Testing Engine & Network
             item {
                 SettingsSectionHeader(title = stringResource(R.string.settings_network_section))
@@ -312,7 +332,7 @@ fun SettingsScreen(
                     )
                     SettingsRowDivider()
 
-                    // Concurrency inline slider row with cohesive Cyan track & pill badge
+                    // Concurrency inline slider row with themed track & pill badge
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -645,11 +665,11 @@ fun SettingsScreen(
     when (activeDialog) {
         ActiveSettingsDialog.THEME -> {
             SettingsRadioPickerDialog(
-                title = stringResource(R.string.settings_theme_dialog_title),
+                title = stringResource(R.string.settings_appearance_mode_dialog_title),
                 options = ThemePreference.entries.map { pref ->
                     RadioPickerOption(
                         value = pref,
-                        label = pref.displayLabel,
+                        label = appearanceLabel(pref),
                         testTag = "theme_option_${pref.name.lowercase()}"
                     )
                 },
@@ -906,7 +926,6 @@ private fun SettingsAppProfileHeaderCard(
                             brush = Brush.linearGradient(
                                 colors = listOf(
                                     semantic.ctaGradientStart,
-                                    semantic.ctaGradientMid,
                                     semantic.ctaGradientEnd
                                 )
                             ),
@@ -1040,10 +1059,14 @@ private fun SettingsVersionFooter() {
 @Preview(showBackground = true)
 @Composable
 private fun SettingsScreenPreview() {
-    BdixTesterTheme(themePreference = ThemePreference.DARK) {
+    BdixTesterTheme(
+        themePreset = AppThemePreset.MIDNIGHT_INDIGO,
+        themePreference = ThemePreference.DARK
+    ) {
         SettingsScreen(
             uiState = SettingsUiState(),
             onNavigateBack = {},
+            onSelectThemePreset = {},
             onSelectTheme = {},
             onSelectLanguage = {},
             onSelectDefaultScanMode = {},

@@ -18,9 +18,8 @@ Every screen preserves 100% of existing business logic, ViewModels, Room entitie
    - **Active Scan (`isScanning || isStarting`):** If `!LocalReducedMotion.current`, run orbital sweep, luminous comet head, expanding sonar waves, and gentle top-bar radar rotation. If `LocalReducedMotion.current`, render deterministic animated progress arc without continuous spin/sonar loops.
    - **Completion:** Animations settle cleanly to idle state.
 2. **WCAG AA CTA Gradient & Text (P0):**
-   - Light Start: `#0369A1 → #1D4ED8` + `#FFFFFF` text/icon (`≥ 5.93:1`).
-   - Dark Start: `#22D3EE → #38BDF8 → #3B82F6` + `#041E2D` text/icon (`≥ 4.65:1`).
-   - Light/Dark Stop: `#C81E1E → #991B1B` / `#B91C1C → #991B1B` + `#FFFFFF` text/icon (`≥ 5.74:1`).
+   - Two-tone theme CTA gradients (`semantic.ctaGradientStart → semantic.ctaGradientEnd`) with `semantic.ctaContent` across all 4 approved themes (`Midnight Indigo`, `Graphite & Amber`, `Deep Emerald`, `Warm Premium`), every gradient stop verified ≥ `4.5:1`.
+   - Light/Dark Stop CTA (`semantic.stopGradientStart → semantic.stopGradientEnd`) with `semantic.stopContent` (`≥ 4.5:1`).
 3. **Subtle Scan Mode & Post-Scan Feedback Caption (P3):**
    - Compact non-interactive status caption below the ring or CTA sourced strictly from `DashboardUiState`:
      - Idle (never tested): `Quick Scan · 369 Servers` / `Full Scan · 369 Servers` (localized).
@@ -41,7 +40,7 @@ Every screen preserves 100% of existing business logic, ViewModels, Room entitie
 
 ### Specification Changes
 1. **Touch Targets (P1):** Raise `ott_region_*` `FilterChip` minimum height from `40.dp` to `48.dp`.
-2. **Status & Latency Contrast (P0):** Inherit tightened Light Emerald (`#047857`), Amber (`#B45309`), and Crimson (`#C81E1E`) tokens; use `MonoBadgeStyle` for numeric latency chips (`12 ms`) and `labelSmall` (body font) for Bengali/English text badges (`বাংলাদেশ`, `খুলুন`, category labels).
+2. **Status & Latency Contrast (P0):** Inherit theme-verified `semantic.reachable`, `semantic.restricted`, and `semantic.unreachable` tokens (all ≥ `4.5:1` across all 8 configurations); use `MonoBadgeStyle` for numeric latency chips (`12 ms`) and `labelSmall` (body font) for Bengali/English text badges (`বাংলাদেশ`, `খুলুন`, category labels).
 3. **Fastest Ping & A–Z Sorting (P2):**
    - Wire existing `ServersViewModel.updateSortOrder(...)` to a compact `>= 48.dp` sort action/menu in BDIX mode (`Default`, `Fastest Ping`, `A–Z`).
    - Harden `ServerSortOrder.LATENCY` so `null` or `< 0L` latencies always sort after valid numeric pings (`primaryLatencyMs?.takeIf { it >= 0L } ?: Long.MAX_VALUE`).
@@ -97,9 +96,9 @@ Every screen preserves 100% of existing business logic, ViewModels, Room entitie
 
 ### Specification Changes
 1. **Color & Contrast Fixes (P0):**
-   - App Profile Header icon badge uses `semantic.ctaGradientStart/End` + `semantic.ctaContent` (`≥ 4.65:1`).
-   - Live IP text uses `semantic.ipAccent` (`#035E91` Light = `6.12:1`; `#38BDF8` Dark = `7.71:1`).
-   - Version Footer `APPLICATION_ID` uses full-opacity `onSurfaceVariant` (`6.68:1` Light).
+   - App Profile Header icon badge uses `semantic.ctaGradientStart` → `semantic.ctaGradientEnd` + `semantic.ctaContent` (`≥ 4.5:1`).
+   - Live IP text uses `semantic.ipAccent` (≥ `4.5:1` on `surfaceContainer` across all 8 configurations).
+   - Version Footer `APPLICATION_ID` uses full-opacity `onSurfaceVariant` (≥ `4.5:1` across all 8 configurations).
 2. **Consolidate Duplicate Sync Action & Rich Sync Telemetry (P2):**
    - Deduplicate `Update Server List` vs `Sync Catalog Now`: clarify Quick Actions vs Remote Signed Catalog Sync so there are no confusing duplicate sync buttons.
    - Display formatted `Last Successful Sync` timestamp from `sync.lastSuccessfulSyncAtEpochMs` when available, plus clear inline error surface + `Retry Sync` label when `lastSyncStatus` indicates failure.

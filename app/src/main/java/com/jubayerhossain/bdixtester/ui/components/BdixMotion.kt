@@ -295,11 +295,16 @@ fun AnimatedPinIcon(
 @Composable
 fun ShimmerPillOverlay(
     modifier: Modifier = Modifier,
-    shimmerColor: Color = Color.White.copy(alpha = 0.28f),
+    shimmerColor: Color = Color.Unspecified,
     durationMillis: Int = 2600,
     enabled: Boolean = true
 ) {
     if (!enabled || LocalReducedMotion.current) return
+    val resolvedShimmerColor = if (shimmerColor == Color.Unspecified) {
+        com.jubayerhossain.bdixtester.ui.theme.LocalBdixSemanticColors.current.shimmerOverlay.copy(alpha = 0.24f)
+    } else {
+        shimmerColor
+    }
 
     val transition = rememberInfiniteTransition(label = "shimmer_pill")
     val shimmerProgress by transition.animateFloat(
@@ -321,7 +326,7 @@ fun ShimmerPillOverlay(
             brush = Brush.linearGradient(
                 colors = listOf(
                     Color.Transparent,
-                    shimmerColor,
+                    resolvedShimmerColor,
                     Color.Transparent
                 ),
                 start = Offset(startX - bandWidth, 0f),

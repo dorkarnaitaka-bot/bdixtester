@@ -183,7 +183,7 @@ fun DashboardScreen(
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            semantic.ringGradientMid.copy(alpha = ambientAlpha),
+                            semantic.ringGradientEnd.copy(alpha = ambientAlpha),
                             semantic.ringGradientStart.copy(alpha = ambientAlpha * 0.4f),
                             Color.Transparent
                         ),
@@ -556,11 +556,6 @@ private fun PrimaryTestActionButton(
         animationSpec = tween(320),
         label = "cta_start_color"
     )
-    val midColor by animateColorAsState(
-        targetValue = if (isScanning) semantic.stopGradientStart else semantic.ctaGradientMid,
-        animationSpec = tween(320),
-        label = "cta_mid_color"
-    )
     val endColor by animateColorAsState(
         targetValue = if (isScanning) semantic.stopGradientEnd else semantic.ctaGradientEnd,
         animationSpec = tween(320),
@@ -573,7 +568,7 @@ private fun PrimaryTestActionButton(
     )
 
     val gradientBrush = Brush.horizontalGradient(
-        colors = listOf(startColor, midColor, endColor)
+        colors = listOf(startColor, endColor)
     )
 
     val actionLabel = stringResource(
@@ -588,8 +583,8 @@ private fun PrimaryTestActionButton(
             .shadow(
                 elevation = if (isScanning) 10.dp else 14.dp,
                 shape = pillShape,
-                ambientColor = midColor.copy(alpha = 0.40f),
-                spotColor = midColor.copy(alpha = 0.48f)
+                ambientColor = startColor.copy(alpha = 0.36f),
+                spotColor = startColor.copy(alpha = 0.44f)
             )
             .clip(pillShape)
             .background(brush = gradientBrush)
@@ -788,7 +783,6 @@ private fun HeroTesterRing(
     val ringColors = remember(semantic) {
         listOf(
             semantic.ringGradientStart,
-            semantic.ringGradientMid,
             semantic.ringGradientEnd,
             semantic.ringGradientStart
         )
@@ -823,7 +817,7 @@ private fun HeroTesterRing(
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        semantic.ringGradientMid.copy(alpha = glowAlpha),
+                        semantic.ringGradientEnd.copy(alpha = glowAlpha),
                         semantic.ringGradientStart.copy(alpha = glowAlpha * 0.42f),
                         Color.Transparent
                     ),
@@ -846,7 +840,7 @@ private fun HeroTesterRing(
                         val waveRadius = mainRingRadius + (fullRadius - mainRingRadius) * wave
                         val waveAlpha = (1f - wave) * 0.34f
                         drawCircle(
-                            color = semantic.ringGradientMid.copy(alpha = waveAlpha),
+                            color = semantic.ringGradientEnd.copy(alpha = waveAlpha),
                             radius = waveRadius,
                             center = center,
                             style = Stroke(width = (2.2f - wave * 1.4f).dp.toPx())
@@ -867,8 +861,8 @@ private fun HeroTesterRing(
                 val particleAngles = listOf(0.0, 120.0, 240.0)
                 val particleColors = listOf(
                     semantic.ringGradientStart,
-                    semantic.ringGradientMid,
-                    semantic.ringGradientEnd
+                    semantic.ringGradientEnd,
+                    semantic.ringGradientStart
                 )
                 particleAngles.forEachIndexed { idx, deg ->
                     val rad = deg * PI / 180.0
@@ -910,7 +904,7 @@ private fun HeroTesterRing(
                         center.y + (tickOuterRadius * sin(rad)).toFloat()
                     )
                     drawLine(
-                        color = semantic.ringGradientMid.copy(alpha = if (isMajor) 0.42f else 0.18f),
+                        color = semantic.ringGradientEnd.copy(alpha = if (isMajor) 0.42f else 0.18f),
                         start = start,
                         end = end,
                         strokeWidth = if (isMajor) 1.6.dp.toPx() else 1.dp.toPx(),
@@ -937,7 +931,7 @@ private fun HeroTesterRing(
 
             // Soft ring halo
             drawArc(
-                color = semantic.ringGradientMid.copy(alpha = if (isScanning) 0.24f else glowAlpha * 0.78f),
+                color = semantic.ringGradientEnd.copy(alpha = if (isScanning) 0.24f else glowAlpha * 0.78f),
                 startAngle = 0f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -984,7 +978,7 @@ private fun HeroTesterRing(
                         center.y + (mainRingRadius * sin(headRad)).toFloat()
                     )
                     drawCircle(
-                        color = Color.White.copy(alpha = 0.92f),
+                        color = semantic.ringCometHead.copy(alpha = 0.92f),
                         radius = 4.5.dp.toPx(),
                         center = headPos
                     )

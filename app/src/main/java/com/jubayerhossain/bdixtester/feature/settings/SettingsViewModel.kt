@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.jubayerhossain.bdixtester.core.di.AppContainer
 import com.jubayerhossain.bdixtester.core.model.AppLanguage
+import com.jubayerhossain.bdixtester.core.model.AppThemePreset
 import com.jubayerhossain.bdixtester.core.model.ScanMode
 import com.jubayerhossain.bdixtester.core.model.ThemePreference
 import com.jubayerhossain.bdixtester.core.network.NetworkSnapshot
@@ -67,6 +68,10 @@ class SettingsViewModel(
             networkSnapshot = appContainer.connectivityObserver.currentSnapshot()
         )
     )
+
+    fun selectThemePreset(preset: AppThemePreset) {
+        viewModelScope.launch { settingsRepo.setThemePreset(preset) }
+    }
 
     fun selectTheme(preference: ThemePreference) {
         viewModelScope.launch { settingsRepo.setThemePreference(preference) }

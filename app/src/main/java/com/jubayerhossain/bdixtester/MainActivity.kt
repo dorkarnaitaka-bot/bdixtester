@@ -8,17 +8,16 @@ import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.jubayerhossain.bdixtester.core.model.ThemePreference
 import com.jubayerhossain.bdixtester.core.util.LocaleHelper
 import com.jubayerhossain.bdixtester.navigation.BdixTesterAppRoot
 import com.jubayerhossain.bdixtester.ui.theme.BdixTesterTheme
+import com.jubayerhossain.bdixtester.ui.theme.resolveUseDarkTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,17 +25,13 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val appContainer = (application as BdixtesterApplication).appContainer
         setContent {
+            val themePreset by appContainer.themePreset.collectAsStateWithLifecycle()
             val themePreference by appContainer.themePreference.collectAsStateWithLifecycle()
             val appLanguage by appContainer.appLanguage.collectAsStateWithLifecycle()
             val reduceAnimations by appContainer.reduceAnimations.collectAsStateWithLifecycle()
-            val systemDark = isSystemInDarkTheme()
-            val useDarkTheme = when (themePreference) {
-                ThemePreference.SYSTEM -> systemDark
-                ThemePreference.LIGHT -> false
-                ThemePreference.DARK -> true
-            }
+            val useDarkTheme = resolveUseDarkTheme(themePreference)
 
-            DisposableEffect(useDarkTheme) {
+            DisposableEffect(useDarkTheme, themePreset) {
                 enableEdgeToEdge(
                     statusBarStyle = if (useDarkTheme) {
                         SystemBarStyle.dark(AndroidColor.TRANSPARENT)
@@ -62,6 +57,7 @@ class MainActivity : ComponentActivity() {
                 LocalOnBackPressedDispatcherOwner provides this@MainActivity
             ) {
                 BdixTesterTheme(
+                    themePreset = themePreset,
                     themePreference = themePreference,
                     reduceAnimations = reduceAnimations
                 ) {

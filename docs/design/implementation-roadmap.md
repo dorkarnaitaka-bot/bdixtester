@@ -8,8 +8,8 @@
 
 | # | Task | Target Files | Acceptance Criteria |
 |---|---|---|---|
-| P0.1 | Update Light/Dark contrast tokens & add dedicated CTA/Stop/IP semantic colors | `ui/theme/Color.kt`, `ui/theme/Theme.kt` | All Light & Dark semantic pairs ≥ 4.5:1 (`#03669C`, `#047857`, `#B45309`, `#C81E1E`, `#035E91`, Light CTA `#0369A1→#1D4ED8`+White, Dark CTA `#22D3EE→#38BDF8→#3B82F6`+`#041E2D`). |
-| P0.2 | Apply semantic CTA/Stop colors in Home & Profile Header + remove low-alpha footer text | `feature/dashboard/DashboardScreen.kt`, `feature/settings/SettingsScreen.kt` | Zero hardcoded `Color.White`/`0xFFDC2626` in CTA; Settings footer AppId ≥ 4.5:1. |
+| P0.1 | Replace legacy palette with 4 curated Light/Dark themes (`Midnight Indigo`, `Graphite & Amber`, `Deep Emerald`, `Warm Premium`) + semantic CTA/Stop/IP colors | `ui/theme/Color.kt`, `ui/theme/Theme.kt` | All 8 Light & Dark semantic pairs ≥ 4.5:1 (`>= 3.0:1` UI/outline), two-tone theme CTA gradients + Stop gradients, dynamic color disabled. |
+| P0.2 | Apply semantic CTA/Stop colors in Home & Profile Header + remove low-alpha footer text | `feature/dashboard/DashboardScreen.kt`, `feature/settings/SettingsScreen.kt` | Zero hardcoded `Color.White`/hex literals in CTA; Settings footer AppId ≥ 4.5:1. |
 | P0.3 | Dynamic `enableEdgeToEdge(statusBarStyle, navigationBarStyle)` + `adjustResize` | `MainActivity.kt`, `AndroidManifest.xml` | Status & navigation bar icons immediately invert on manual Light/Dark theme switch. |
 | P0.4 | Fix Bengali `letterSpacing = 0.sp`, `labelSmall` body font fallback, `MonoBadgeStyle`, and real font weight resolution | `ui/theme/Type.kt`, `feature/servers/ServersScreen.kt`, `res/font/*` (if weights added via `font-util`) | `BdixTypographyBengali` has `0.sp` tracking everywhere, `NotoSansBengaliFamily` on `labelSmall`, and working weight hierarchy. |
 

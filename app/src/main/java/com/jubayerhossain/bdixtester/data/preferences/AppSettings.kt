@@ -1,10 +1,12 @@
 package com.jubayerhossain.bdixtester.data.preferences
 
 import com.jubayerhossain.bdixtester.core.model.AppLanguage
+import com.jubayerhossain.bdixtester.core.model.AppThemePreset
 import com.jubayerhossain.bdixtester.core.model.ScanMode
 import com.jubayerhossain.bdixtester.core.model.ThemePreference
 
 data class AppSettings(
+    val themePreset: AppThemePreset = AppThemePreset.MIDNIGHT_INDIGO,
     val themePreference: ThemePreference = ThemePreference.SYSTEM,
     val appLanguage: AppLanguage = AppLanguage.SYSTEM,
     val defaultScanMode: ScanMode = ScanMode.QUICK_SCAN,

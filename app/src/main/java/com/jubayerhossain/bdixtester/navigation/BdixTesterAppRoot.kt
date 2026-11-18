@@ -30,6 +30,7 @@ import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -76,6 +77,7 @@ import com.jubayerhossain.bdixtester.ui.components.BdixMotionSpecs
 import com.jubayerhossain.bdixtester.ui.components.CustomServerDialog
 import com.jubayerhossain.bdixtester.ui.components.LocalReducedMotion
 import com.jubayerhossain.bdixtester.ui.theme.BdixIconSize
+import com.jubayerhossain.bdixtester.ui.theme.LocalBdixSemanticColors
 import kotlinx.coroutines.launch
 
 @Composable
@@ -276,6 +278,7 @@ fun BdixTesterAppRoot(
                 composable(BdixRoutes.SETTINGS) {
                     SettingsScreen(
                         uiState = settingsUiState,
+                        onSelectThemePreset = settingsViewModel::selectThemePreset,
                         onSelectTheme = settingsViewModel::selectTheme,
                         onSelectLanguage = settingsViewModel::selectLanguage,
                         onReduceAnimationsChange = settingsViewModel::setReduceAnimations,
@@ -319,7 +322,7 @@ fun BdixTesterAppRoot(
                         .imePadding(),
                     containerColor = MaterialTheme.colorScheme.background,
                     contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                    snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+                    snackbarHost = { BdixThemedSnackbarHost(hostState = snackbarHostState) }
                 ) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
                         navHostContent(Modifier)
@@ -333,7 +336,7 @@ fun BdixTesterAppRoot(
                     .imePadding(),
                 containerColor = MaterialTheme.colorScheme.background,
                 contentWindowInsets = WindowInsets(0, 0, 0, 0),
-                snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+                snackbarHost = { BdixThemedSnackbarHost(hostState = snackbarHostState) },
                 bottomBar = {
                     AnimatedVisibility(
                         visible = isTopLevelDestination,
@@ -378,21 +381,35 @@ fun BdixTesterAppRoot(
 }
 
 @Composable
+private fun BdixThemedSnackbarHost(hostState: SnackbarHostState) {
+    val semantic = LocalBdixSemanticColors.current
+    SnackbarHost(hostState = hostState) { data ->
+        Snackbar(
+            snackbarData = data,
+            containerColor = semantic.snackbarBackground,
+            contentColor = semantic.onSnackbar,
+            actionColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    }
+}
+
+@Composable
 private fun BdixBottomNavigationBar(
     currentRoute: String?,
     onSelectDestination: (String) -> Unit
 ) {
+    val semantic = LocalBdixSemanticColors.current
     val activeRoute = currentRoute ?: BdixRoutes.HOME
     NavigationBar(
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        tonalElevation = 3.dp,
+        containerColor = semantic.navBackground,
+        tonalElevation = 0.dp,
         windowInsets = WindowInsets.navigationBars,
         modifier = Modifier.testTag("main_bottom_navigation_bar")
     ) {
         val colors = NavigationBarItemDefaults.colors(
             selectedIconColor = MaterialTheme.colorScheme.primary,
             selectedTextColor = MaterialTheme.colorScheme.primary,
-            indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f),
+            indicatorColor = semantic.navIndicator,
             unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
             unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -445,9 +462,10 @@ private fun BdixNavigationRail(
     currentRoute: String?,
     onSelectDestination: (String) -> Unit
 ) {
+    val semantic = LocalBdixSemanticColors.current
     val activeRoute = currentRoute ?: BdixRoutes.HOME
     NavigationRail(
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = semantic.navBackground,
         modifier = Modifier
             .fillMaxHeight()
             .statusBarsPadding()
@@ -457,7 +475,7 @@ private fun BdixNavigationRail(
         val colors = NavigationRailItemDefaults.colors(
             selectedIconColor = MaterialTheme.colorScheme.primary,
             selectedTextColor = MaterialTheme.colorScheme.primary,
-            indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f),
+            indicatorColor = semantic.navIndicator,
             unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
             unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
         )

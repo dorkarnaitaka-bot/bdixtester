@@ -1,54 +1,22 @@
-# BDIX Tester — Design System Specification (Phase 1)
+# BDIX Tester — Design System Specification
 
-**Design Direction:** *Precision Diagnostic Minimalism — Material Design 3*  
-**Brand Identity:** Preserved (Ocean Cyan-Sky Diagnostic Palette · Crisp Alabaster Light · Deep Ocean Slate Dark)  
-**Dynamic Color:** `false` by default (preserves deterministic WCAG AA diagnostic contrast).
+**Design Direction:** *Four Curated Visual Themes · Material Design 3*  
+**Approved Themes:** `Midnight Indigo` *(Default)* · `Graphite & Amber` · `Deep Emerald` · `Warm Premium`  
+**Appearances:** Full Light, Dark, and System Default support (8 configurations)  
+**Dynamic Color:** Permanently disabled (`false`) to preserve deterministic WCAG 2.2 AA contrast.
 
 ---
 
 ## 1. Color System & Verified WCAG 2.2 AA Contrast Matrix
 
-### 1.1 Light Theme — *Crisp Alabaster* (`ui/theme/Color.kt`, `ui/theme/Theme.kt`)
+The previous single-palette color system has been permanently removed and replaced by four complete Light/Dark theme specifications in `ui/theme/Color.kt` and `ui/theme/Theme.kt`.
 
-| Role / Token | Current HEX | Target HEX | Foreground / Background Pair Verified | Calculated Ratio | WCAG 2.2 AA |
-|---|---:|---:|---|---:|---|
-| `LightBackground` | `#F4F7FA` | `#F4F7FA` | `#0B1521` on `#F4F7FA` | **17.07:1** | PASS AAA |
-| `LightSurfaceContainerLow` | `#FFFFFF` | `#FFFFFF` | `#0B1521` on `#FFFFFF` | **18.28:1** | PASS AAA |
-| `LightSurfaceContainer` | `#EBF1F7` | `#EBF1F7` | `#475A6E` on `#EBF1F7` | **6.25:1** | PASS AA |
-| `CyanPrimaryLight` (`primary`) | `#0277B5` | **`#03669C`** | `#03669C` on `#EBF1F7` / `#DCEFFD` (nav pill) / `#FFFFFF` | **5.45 / 5.26 / 6.20:1** | PASS AA |
-| `LightOnSurface` | `#0B1521` | `#0B1521` | `#0B1521` on `#EBF1F7` | **16.10:1** | PASS AAA |
-| `LightOnSurfaceVariant` | `#475A6E` | `#475A6E` | `#475A6E` on `#FFFFFF` / `#F4F7FA` | **7.11 / 6.68:1** | PASS AA |
-| `LightSemanticColors.reachable` | `#059669` | **`#047857`** | `#047857` on `#D1FAE5` / `#FFFFFF` | **4.84 / 5.48:1** | PASS AA |
-| `LightSemanticColors.reachableContainer` | `#D1FAE5` | `#D1FAE5` | — | — | Container |
-| `LightSemanticColors.restricted` | `#D97706` | **`#B45309`** | `#B45309` on `#FEF3C7` / `#FFFFFF` | **4.51 / 5.02:1** | PASS AA |
-| `LightSemanticColors.restrictedContainer` | `#FEF3C7` | `#FEF3C7` | — | — | Container |
-| `LightSemanticColors.unreachable` / `ErrorLight` | `#DC2626` | **`#C81E1E`** | `#C81E1E` on `#FEE2E2` / `#FFFFFF` | **4.70 / 5.74:1** | PASS AA |
-| `LightSemanticColors.unreachableContainer` | `#FEE2E2` | `#FEE2E2` | — | — | Container |
-| `LightSemanticColors.ipAccent` (NEW) | `#0277B5` | **`#035E91`** | `#035E91` on `#EBF1F7` | **6.12:1** | PASS AA |
-| `LightSemanticColors.ctaGradientStart` (NEW) | `#06B6D4` | **`#0369A1`** | `#FFFFFF` on `#0369A1` | **5.93:1** | PASS AA |
-| `LightSemanticColors.ctaGradientEnd` (NEW) | `#2563EB` | **`#1D4ED8`** | `#FFFFFF` on `#1D4ED8` | **6.70:1** | PASS AA |
-| `LightSemanticColors.ctaContent` (NEW) | hardcoded White | **`#FFFFFF`** | Across full `#0369A1 → #1D4ED8` gradient | **≥ 5.93:1** | PASS AA |
-| `LightSemanticColors.stopGradientStart/End` (NEW) | `#DC2626` | **`#C81E1E → #991B1B`** | `#FFFFFF` on `#C81E1E` / `#991B1B` | **5.74 – 8.31:1** | PASS AA |
+- Full semantic token architecture: `docs/design/color-system-specification.md`
+- Complete 8-configuration HEX matrix: `docs/design/light-dark-theme-matrix.md`
+- Verified WCAG 2.2 AA contrast measurements: `docs/design/accessibility-contrast-report.md`
 
-### 1.2 Dark Theme — *Deep Ocean Slate* (`ui/theme/Color.kt`, `ui/theme/Theme.kt`)
-
-| Role / Token | Current HEX | Target HEX | Foreground / Background Pair Verified | Calculated Ratio | WCAG 2.2 AA |
-|---|---:|---:|---|---:|---|
-| `DarkBackground` | `#081018` | `#081018` | `#F1F5F9` on `#081018` | **17.44:1** | PASS AAA |
-| `DarkSurfaceContainerLow` | `#0D1722` | `#0D1722` | `#F1F5F9` on `#0D1722` | **16.29:1** | PASS AAA |
-| `DarkSurfaceContainer` | `#12202E` | `#12202E` | `#9FB0C4` on `#12202E` | **7.46:1** | PASS AAA |
-| `CyanPrimaryDark` (`primary`) | `#38BDF8` | `#38BDF8` | `#38BDF8` on `#12202E` / `#0E334C` (nav pill) | **7.71 / 6.14:1** | PASS AA |
-| `DarkSemanticColors.reachable` | `#34D399` | `#34D399` | `#34D399` on `#064E3B` | **5.06:1** | PASS AA |
-| `DarkSemanticColors.restricted` | `#FBBF24` | `#FBBF24` | `#FBBF24` on `#5C3409` | **6.45:1** | PASS AA |
-| `DarkSemanticColors.unreachable` | `#F87171` | `#F87171` | `#F87171` on `#5C1919` | **4.72:1** | PASS AA |
-| `DarkSemanticColors.ctaGradientStart` (NEW) | `#22D3EE` | `#22D3EE` | `#041E2D` on `#22D3EE` | **9.46:1** | PASS AAA |
-| `DarkSemanticColors.ctaGradientMid` (NEW) | `#38BDF8` | `#38BDF8` | `#041E2D` on `#38BDF8` | **7.98:1** | PASS AAA |
-| `DarkSemanticColors.ctaGradientEnd` (NEW) | `#3B82F6` | `#3B82F6` | `#041E2D` on `#3B82F6` | **4.65:1** | PASS AA |
-| `DarkSemanticColors.ctaContent` (NEW) | hardcoded White (1.81:1!) | **`#041E2D`** (`NavyDeep`) | Across full `#22D3EE → #38BDF8 → #3B82F6` | **≥ 4.65:1** | PASS AA |
-| `DarkSemanticColors.stopGradientStart/End` (NEW) | `#F87171 → #DC2626` | **`#B91C1C → #991B1B`** | `#FFFFFF` on `#B91C1C` / `#991B1B` | **6.47 – 8.31:1** | PASS AA |
-
-### 1.3 Alpha Compositing & Non-Color Redundancy Rules
-- Never lower body/caption text opacity below `1.0f` when it drops composited contrast below `4.5:1` (fixes `SettingsVersionFooter` `APPLICATION_ID` from `0.72f` alpha = `3.47:1` to full `onSurfaceVariant` = `6.68:1`).
+### 1.1 Alpha Compositing & Non-Color Redundancy Rules
+- Never lower body/caption text opacity below `1.0f` when it drops composited contrast below `4.5:1`.
 - Every status indicator pairs **semantic color + distinct icon + localized text label** (`CheckCircle` / `Warning` or `Lock` / `Cancel` or `ErrorOutline`).
 
 ---

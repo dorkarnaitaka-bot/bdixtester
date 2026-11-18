@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.jubayerhossain.bdixtester.core.model.AppLanguage
+import com.jubayerhossain.bdixtester.core.model.AppThemePreset
 import com.jubayerhossain.bdixtester.core.model.ScanMode
 import com.jubayerhossain.bdixtester.core.model.ThemePreference
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +26,7 @@ private val Context.bdixSettingsDataStore: DataStore<Preferences> by preferences
 interface SettingsRepository {
     val settings: Flow<AppSettings>
 
+    suspend fun setThemePreset(preset: AppThemePreset)
     suspend fun setThemePreference(preference: ThemePreference)
     suspend fun setAppLanguage(language: AppLanguage)
     suspend fun setDefaultScanMode(scanMode: ScanMode)
@@ -49,6 +51,7 @@ class SettingsDataStoreRepository(
     constructor(context: Context) : this(context.applicationContext.bdixSettingsDataStore)
 
     private object Keys {
+        val THEME_PRESET = stringPreferencesKey("theme_preset")
         val THEME = stringPreferencesKey("theme_preference")
         val LANGUAGE = stringPreferencesKey("app_language")
         val DEFAULT_SCAN_MODE = stringPreferencesKey("default_scan_mode")
@@ -75,9 +78,8 @@ class SettingsDataStoreRepository(
             }
         }
         .map { prefs ->
-            val theme = prefs[Keys.THEME]?.let { name ->
-                ThemePreference.entries.firstOrNull { it.name == name }
-            } ?: ThemePreference.SYSTEM
+            val themePreset = migrateThemePreset(prefs[Keys.THEME_PRESET])
+            val theme = migrateThemePreference(prefs[Keys.THEME])
 
             val language = prefs[Keys.LANGUAGE]?.let { name ->
                 AppLanguage.entries.firstOrNull { it.name == name }
@@ -88,6 +90,7 @@ class SettingsDataStoreRepository(
             } ?: ScanMode.QUICK_SCAN
 
             AppSettings(
+                themePreset = themePreset,
                 themePreference = theme,
                 appLanguage = language,
                 defaultScanMode = defaultScanMode,
@@ -114,8 +117,32 @@ class SettingsDataStoreRepository(
             )
         }
 
+    override suspend fun setThemePreset(preset: AppThemePreset) {
+        dataStore.edit { it[Keys.THEME_PRESET] = preset.name }
+    }
+
     override suspend fun setThemePreference(preference: ThemePreference) {
         dataStore.edit { it[Keys.THEME] = preference.name }
+    }
+
+    companion object {
+        internal fun migrateThemePreset(raw: String?): AppThemePreset {
+            if (raw.isNullOrBlank()) return AppThemePreset.MIDNIGHT_INDIGO
+            return AppThemePreset.entries.firstOrNull {
+                it.name.equals(raw.trim(), ignoreCase = true)
+            } ?: AppThemePreset.MIDNIGHT_INDIGO
+        }
+
+        internal fun migrateThemePreference(raw: String?): ThemePreference {
+            if (raw.isNullOrBlank()) return ThemePreference.SYSTEM
+            val normalized = raw.trim().uppercase()
+            return when (normalized) {
+                "SYSTEM", "SYSTEM_DEFAULT", "FOLLOW_SYSTEM", "AUTO", "DEFAULT" -> ThemePreference.SYSTEM
+                "LIGHT", "DAY" -> ThemePreference.LIGHT
+                "DARK", "NIGHT" -> ThemePreference.DARK
+                else -> ThemePreference.SYSTEM
+            }
+        }
     }
 
     override suspend fun setAppLanguage(language: AppLanguage) {

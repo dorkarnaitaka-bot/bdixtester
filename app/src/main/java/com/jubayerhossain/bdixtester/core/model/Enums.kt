@@ -123,6 +123,13 @@ enum class SyncStatus(val displayLabel: String) {
     NETWORK_ERROR("Network error")
 }
 
+enum class AppThemePreset(val displayLabel: String) {
+    MIDNIGHT_INDIGO("Midnight Indigo"),
+    GRAPHITE_AMBER("Graphite & Amber"),
+    DEEP_EMERALD("Deep Emerald"),
+    WARM_PREMIUM("Warm Premium")
+}
+
 enum class ThemePreference(val displayLabel: String) {
     SYSTEM("Follow System"),
     LIGHT("Light"),
