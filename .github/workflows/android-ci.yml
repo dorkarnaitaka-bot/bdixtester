@@ -1,0 +1,130 @@
+name: BDIX Tester Android CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-lint:
+    name: Build, Test, Lint & Release Compile Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Validate Gradle Wrapper (if present)
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+
+      - name: Compile Debug Kotlin
+        run: |
+          if [ -x ./gradlew ]; then
+            ./gradlew :app:compileDebugKotlin --stacktrace
+          else
+            gradle :app:compileDebugKotlin --stacktrace
+          fi
+
+      - name: Run Unit & Robolectric Tests
+        run: |
+          if [ -x ./gradlew ]; then
+            ./gradlew :app:testDebugUnitTest --stacktrace
+          else
+            gradle :app:testDebugUnitTest --stacktrace
+          fi
+
+      - name: Run Android Lint (Debug)
+        run: |
+          if [ -x ./gradlew ]; then
+            ./gradlew :app:lintDebug --stacktrace
+          else
+            gradle :app:lintDebug --stacktrace
+          fi
+
+      - name: Assemble Debug APK
+        run: |
+          if [ -x ./gradlew ]; then
+            ./gradlew :app:assembleDebug --stacktrace
+          else
+            gradle :app:assembleDebug --stacktrace
+          fi
+
+      - name: Compile Release Kotlin (Unsigned Verification)
+        run: |
+          if [ -x ./gradlew ]; then
+            ./gradlew :app:compileReleaseKotlin --stacktrace
+          else
+            gradle :app:compileReleaseKotlin --stacktrace
+          fi
+
+      - name: Upload Test, Lint & Debug APK Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bdix-tester-ci-reports
+          path: |
+            app/build/reports/tests/testDebugUnitTest/
+            app/build/reports/lint-results-debug.*
+            app/build/outputs/apk/debug/*.apk
+          retention-days: 14
+
+  release-signed:
+    name: Signed Release Build (Manual Dispatch / Secrets Configured)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    needs: build-test-lint
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+
+      - name: Decode Release Keystore from CI Secrets
+        if: env.UPLOAD_KEYSTORE_BASE64 != ''
+        env:
+          UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          echo "$UPLOAD_KEYSTORE_BASE64" | base64 --decode > upload-keystore.jks
+
+      - name: Build Signed Release APK & AAB
+        if: env.STORE_PASSWORD != '' && env.KEY_PASSWORD != ''
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/upload-keystore.jks
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -x ./gradlew ]; then
+            ./gradlew :app:bundleRelease :app:assembleRelease --stacktrace
+          else
+            gradle :app:bundleRelease :app:assembleRelease --stacktrace
+          fi

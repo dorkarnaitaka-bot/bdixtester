@@ -1,0 +1,147 @@
+<resources>
+    <string name="app_name">BDIX Tester</string>
+
+    <!-- Navigation destinations -->
+    <string name="nav_home">হোম</string>
+    <string name="nav_servers">সার্ভার</string>
+    <string name="nav_scan">স্ক্যান</string>
+    <string name="nav_favorites">সংরক্ষিত</string>
+    <string name="nav_settings">সেটিংস</string>
+
+    <!-- Common actions & labels -->
+    <string name="action_back">পিছনে যান</string>
+    <string name="action_visit_website">ওয়েবসাইট দেখুন</string>
+    <string name="action_quick_scan">কুইক স্ক্যান</string>
+    <string name="action_full_scan">ফুল স্ক্যান</string>
+    <string name="action_stop_scan">থামুন</string>
+    <string name="action_clear_filters">ফিল্টার মুছুন</string>
+    <string name="action_add_server">কাস্টম সার্ভার যোগ করুন</string>
+    <string name="action_edit">সম্পাদনা</string>
+    <string name="action_delete">মুছুন</string>
+    <string name="action_save">সংরক্ষণ</string>
+    <string name="action_cancel">বাতিল</string>
+    <string name="action_confirm">নিশ্চিত করুন</string>
+    <string name="action_export">এক্সপোর্ট</string>
+    <string name="action_test_server">এখনই পরীক্ষা করুন</string>
+    <string name="action_add_favorite">পছন্দের তালিকায় রাখুন</string>
+    <string name="action_remove_favorite">পছন্দ থেকে সরান</string>
+    <string name="action_pin">পিন করুন</string>
+    <string name="action_unpin">আনপিন করুন</string>
+    <string name="action_sync_now">ক্যাটালগ সিঙ্ক করুন</string>
+    <string name="label_not_yet_tested">পরীক্ষিত নয়</string>
+    <string name="label_featured">ফিচার্ড</string>
+    <string name="label_private_ip">প্রাইভেট IPv4</string>
+    <string name="label_latency_ms">লেটেন্সি: %1$d ms</string>
+    <string name="label_throughput_mbps">গতি: %1$s Mbps</string>
+    <string name="export_success">এক্সপোর্ট ফাইল সফলভাবে সংরক্ষিত হয়েছে।</string>
+    <string name="export_failed">এক্সপোর্ট ফাইল সংরক্ষণ করা যায়নি।</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_subtitle">বাংলাদেশ ব্রডব্যান্ড এবং BDIX সার্ভার যাচাইকরণ</string>
+    <string name="dashboard_network_connected">নেটওয়ার্ক সংযোগ সক্রিয় রয়েছে</string>
+    <string name="dashboard_network_offline">সক্রিয় নেটওয়ার্ক পাওয়া যায়নি</string>
+    <string name="dashboard_network_disclaimer">সংযোগ আপনার বর্তমান আইএসপি রাউটিংয়ের উপর নির্ভর করে। চালু এন্ডপয়েন্টগুলো বর্তমান নেটওয়ার্ক থেকে প্রবেশযোগ্য হিসেবে দেখানো হয়।</string>
+    <string name="dashboard_catalog_stats_title">ক্যাটালগ সারসংক্ষেপ</string>
+    <string name="dashboard_stat_total_servers">মোট সার্ভার</string>
+    <string name="dashboard_stat_categories">ক্যাটাগরি</string>
+    <string name="dashboard_stat_tested">পরীক্ষিত</string>
+    <string name="dashboard_stat_reachable">সচল</string>
+    <string name="dashboard_stat_unreachable">অপৌঁছাযোগ্য</string>
+    <string name="dashboard_stat_restricted">সীমাবদ্ধ / ত্রুটি</string>
+    <string name="dashboard_stat_unsupported">অসমর্থিত</string>
+    <string name="dashboard_catalog_notice_title">বিল্ট-ইন ক্যাটালগ অডিট তথ্য</string>
+    <string name="dashboard_catalog_discrepancy_body">সরবরাহকৃত %1$dটি মূল এন্ট্রি হুবহু লোড হয়েছে (%2$dটি অনন্য URL, %3$dটি হুবহু ডুপ্লিকেট সারি)। নির্ধারিত প্রত্যাশিত সংখ্যা %4$d।</string>
+    <string name="dashboard_catalog_verified_body">বিল্ট-ইন ক্যাটালগ যাচাইকৃত: %1$dটি মূল এন্ট্রি হুবহু সংরক্ষিত (%2$d রিমোট, %3$d কাস্টম)।</string>
+    <string name="dashboard_scan_modes_title">কানেক্টিভিটি পরীক্ষার মোড</string>
+    <string name="dashboard_quick_scan_desc">স্পিড-টেস্ট ডেটা ব্যবহার ছাড়া দ্রুত সংযোগ যাচাই (২.৫ সেকেন্ড বাজেট)।</string>
+    <string name="dashboard_full_scan_desc">নির্ধারিত ক্যাটালগে পূর্ণাঙ্গ সংযোগ পরীক্ষা (৫ সেকেন্ড কানেক্ট / ৬ সেকেন্ড রিড)।</string>
+    <string name="dashboard_categories_title">ক্যাটাগরি শর্টকাট</string>
+    <string name="dashboard_featured_title">ফিচার্ড সার্ভার</string>
+    <string name="dashboard_recent_title">সাম্প্রতিক পরীক্ষিত</string>
+    <string name="dashboard_recent_empty">এখনো কোনো স্ক্যান চালানো হয়নি। বর্তমান নেটওয়ার্ক থেকে সচলতা যাচাই করতে কুইক স্ক্যান বা ফুল স্ক্যান শুরু করুন।</string>
+
+    <!-- Servers directory -->
+    <string name="servers_search_placeholder">নাম, হোস্ট বা URL লিখে খুঁজুন…</string>
+    <string name="servers_filter_featured">শুধু ফিচার্ড</string>
+    <string name="servers_empty_title">কোনো সার্ভার পাওয়া যায়নি</string>
+    <string name="servers_empty_catalog_desc">ক্যাটালগে বর্তমানে কোনো সার্ভার নেই।</string>
+    <string name="servers_empty_filter_desc">বর্তমান ক্যাটাগরি, প্রোটোকল, অবস্থা বা অনুসন্ধানের সাথে কোনো সার্ভার মেলেনি।</string>
+    <string name="servers_dialog_add_title">কাস্টম এন্ডপয়েন্ট যোগ করুন</string>
+    <string name="servers_dialog_edit_title">কাস্টম এন্ডপয়েন্ট সম্পাদনা</string>
+    <string name="servers_dialog_name_label">প্রদর্শনের নাম (ঐচ্ছিক)</string>
+    <string name="servers_dialog_url_label">এন্ডপয়েন্ট URL (http, https, ftp, ftps)</string>
+    <string name="servers_dialog_speed_url_label">ঐচ্ছিক স্পিড-টেস্ট রিসোর্স URL (http/https)</string>
+    <string name="servers_dialog_delete_title">কাস্টম সার্ভার মুছবেন?</string>
+    <string name="servers_dialog_delete_body">আপনার কাস্টম তালিকা থেকে \"%1$s\" মুছে ফেলতে চান?</string>
+
+    <!-- Server details -->
+    <string name="details_title">সার্ভারের বিবরণ</string>
+    <string name="details_endpoint_section">এন্ডপয়েন্ট তথ্য</string>
+    <string name="details_verification_section">ক্যাটালগ উৎস ও যাচাইকরণ</string>
+    <string name="details_latest_result_section">সর্বশেষ সংযোগ পর্যবেক্ষণ</string>
+    <string name="details_speed_test_section">ঐচ্ছিক ডাউনলোড গতি পরীক্ষা</string>
+    <string name="details_history_section">এন্ডপয়েন্ট পরীক্ষার ইতিহাস</string>
+    <string name="details_not_tested_notice">এখনো পরীক্ষিত নয়। লাইভ কানেক্টিভিটি পরীক্ষা চালাতে নিচের বাটনে চাপ দিন।</string>
+    <string name="details_open_browser_error">এই URL খোলার জন্য কোনো ব্রাউজার পাওয়া যায়নি।</string>
+    <string name="details_open_browser_ftp_unsupported">ওয়েবসাইট দেখা শুধুমাত্র http:// এবং https:// লিঙ্কের জন্য প্রযোজ্য। FTP/FTPS পরীক্ষার জন্য কানেক্টিভিটি প্রোব ব্যবহার করুন।</string>
+    <string name="details_open_browser_invalid_scheme">অসমর্থিত URL স্কিম ব্রাউজারে খোলা যাবে না।</string>
+    <string name="details_speed_test_disclaimer">সর্বোচ্চ %1$d MiB পর্যন্ত ঐচ্ছিক HTTP/HTTPS ডেটা স্থানান্তর। এটি শুধুমাত্র এই রিসোর্স পথের ডাউনলোড গতি পরিমাপ করে—সম্পূর্ণ আইএসপি ব্যান্ডউইথ নয়।</string>
+    <string name="details_speed_test_url_input">টেস্ট রিসোর্স URL (http:// বা https://)</string>
+    <string name="details_speed_test_start">স্পিড টেস্ট শুরু করুন</string>
+    <string name="details_speed_test_cancel">ট্রান্সফার বাতিল করুন</string>
+    <string name="details_cross_host_title">ভিন্ন হোস্ট রিডাইরেক্ট নিশ্চিত করুন</string>
+    <string name="details_cross_host_body">স্পিড-টেস্ট লিঙ্কটি ভিন্ন হোস্টে (%1$s) রিডাইরেক্ট হয়েছে। %2$s থেকে ডাউনলোড চালিয়ে যেতে চান?</string>
+
+    <!-- Scan screen -->
+    <string name="scan_title">কানেক্টিভিটি স্ক্যানার</string>
+    <string name="scan_scope_title">স্ক্যান পরিসর</string>
+    <string name="scan_coalescing_caption">অনন্য URL: %1$d | ক্যাটালগ এন্ট্রি: %2$d | পরিচালিত প্রোব: %3$d | সংযুক্ত ফলাফল: %4$d</string>
+    <string name="scan_start_label">%1$s শুরু করুন</string>
+    <string name="scan_metric_completed">সম্পন্ন</string>
+    <string name="scan_metric_remaining">বাকি</string>
+    <string name="scan_metric_reachable">সচল</string>
+    <string name="scan_metric_unreachable">অপৌঁছাযোগ্য</string>
+    <string name="scan_metric_error">সীমাবদ্ধ / ত্রুটি</string>
+    <string name="scan_metric_unsupported">অসমর্থিত</string>
+    <string name="scan_metric_active">সক্রিয় ওয়ার্কার</string>
+    <string name="scan_metric_queued">অপেক্ষমাণ</string>
+    <string name="scan_explain_title">ফলাফল ও টাইমআউট ব্যাখ্যা</string>
+    <string name="scan_explain_body">কুইক স্ক্যান ২.৫ সেকেন্ড সীমা ব্যবহার করে এবং স্পিড-টেস্ট ডেটা স্থানান্তর এড়িয়ে চলে। HTTP 401/403/404 উত্তর মানে হোস্টটি আপনার বর্তমান নেটওয়ার্কে সাড়া দিয়েছে (সীমাবদ্ধ হিসেবে চিহ্নিত)।</string>
+    <string name="scan_interrupted_notice">আগের একটি স্ক্যান সম্পন্ন হওয়ার আগেই বিঘ্নিত হয়েছিল। সম্পন্ন হওয়া ফলাফল সংরক্ষিত রয়েছে।</string>
+
+    <!-- Favorites & History -->
+    <string name="favorites_tab_favorites">পছন্দের</string>
+    <string name="favorites_tab_history">ইতিহাস</string>
+    <string name="favorites_empty_title">কোনো পছন্দের সার্ভার সংরক্ষিত নেই</string>
+    <string name="favorites_empty_desc">যেকোনো সার্ভার কার্ড বা বিবরণ পাতায় বুকমার্ক আইকনে ট্যাপ করে সার্ভার সংরক্ষণ ও পিন করুন।</string>
+    <string name="history_empty_title">কোনো পরীক্ষার ইতিহাস নেই</string>
+    <string name="history_empty_desc">স্থানীয় ইতিহাস তৈরি করতে কুইক স্ক্যান, ফুল স্ক্যান বা একক সার্ভার পরীক্ষা চালান।</string>
+    <string name="history_clear_all">ইতিহাস মুছুন</string>
+    <string name="history_clear_confirm_title">সমস্ত ইতিহাস মুছে ফেলবেন?</string>
+    <string name="history_clear_confirm_body">এতে এই ডিভাইসে সংরক্ষিত সমস্ত স্ক্যান এবং স্পিড-টেস্ট রেকর্ড স্থায়ীভাবে মুছে যাবে।</string>
+
+    <!-- Settings -->
+    <string name="settings_title">সেটিংস</string>
+    <string name="settings_appearance_section">থিম এবং ভাষা</string>
+    <string name="settings_language_label">অ্যাপের ভাষা</string>
+    <string name="settings_network_section">পরীক্ষণ ইঞ্জিন ও ডেটা সীমা</string>
+    <string name="settings_concurrency_label">সর্বোচ্চ সমান্তরাল প্রোব: %1$d (প্রতি হোস্টে ১টি)</string>
+    <string name="settings_timeouts_summary">ফুল স্ক্যান কানেক্ট: %1$ds | রিড: %2$ds | কুইক বাজেট: %3$s</string>
+    <string name="settings_speed_cap_label">স্পিড-টেস্ট ডেটা সীমা: %1$d MiB</string>
+    <string name="settings_network_profile_label">ম্যানুয়াল নেটওয়ার্ক লেবেল (ঐচ্ছিক, যেমন: Home ISP / Office)</string>
+    <string name="settings_catalog_section">স্বাক্ষরিত রিমোট ক্যাটালগ সিঙ্ক</string>
+    <string name="settings_remote_url_label">স্বাক্ষরিত ম্যানিফেস্ট HTTPS URL (GitHub / HTTPS JSON)</string>
+    <string name="settings_auto_sync_label">স্বয়ংক্রিয় ব্যাকগ্রাউন্ড আপডেট</string>
+    <string name="settings_wifi_only_label">শুধুমাত্র Wi-Fi-তে ক্যাটালগ সিঙ্ক</string>
+    <string name="settings_cross_origin_label">ক্রস-অরিজিন পে-লোড অনুমোদন করুন</string>
+    <string name="settings_data_section">ইতিহাস, সংরক্ষণ ও ডেটা অপসারণ</string>
+    <string name="settings_retention_label">ইতিহাস সংরক্ষণ সময়সীমা: %1$d দিন</string>
+    <string name="settings_clear_favorites">সমস্ত পছন্দের সার্ভার মুছুন</string>
+    <string name="settings_clear_custom">সমস্ত কাস্টম সার্ভার মুছুন</string>
+    <string name="settings_reset_all">সমস্ত স্থানীয় ডেটা রিসেট করুন</string>
+    <string name="settings_confirm_action_title">ডেটা অপসারণ নিশ্চিত করুন</string>
+    <string name="settings_privacy_section">গোপনীয়তা ও অ্যাপ তথ্য</string>
+    <string name="settings_developer_label">ডেভেলপার</string>
+    <string name="settings_developer_value">Jubayer Hossain (JubayerHossain)</string>
+    <string name="settings_privacy_summary">লোকাল-ফার্স্ট ডিজাইন। কোনো অ্যাকাউন্ট, অ্যানালিটিক্স, লোকেশন বা Wi-Fi SSID সংগ্রহ নেই এবং কোনো বিজ্ঞাপন SDK নেই।</string>
+</resources>
